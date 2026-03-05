@@ -56,6 +56,7 @@ The project aims to:
 
 ## Repository Structure
 
+```bash
 │   .gitignore
 │   README.md
 │
@@ -74,7 +75,7 @@ The project aims to:
     │       register_file.sv
     │
     └───sim
-
+```
 
 ---  
   
