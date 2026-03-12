@@ -1,16 +1,16 @@
 `timescale 1ns / 1ps
 
-module alu_m (
-    input wire [15:0] A  /*!p:l*/,
-    input wire [15:0] B,
-    input wire Cin  /*!p:t,t:Cin*/,
+module alu (
+    input logic [15:0] A  /*!p:l*/,
+    input logic [15:0] B,
+    input logic Cin  /*!p:t,t:Cin*/,
 
-    output wire [15:0] S  /*!p:r*/,
-    output wire [ 3:0] CVZN,
+    output logic [15:0] S  /*!p:r*/,
+    output logic [ 3:0] CVZN,
 
-    input wire [2:0] op_type  /*!p:b,t:op,s:30*/,
-    input wire [2:0] func  /*!t:f*/,
-    input wire [2:0] shif_count_ni  /*!t:shift*/
+    input logic [2:0] op_type  /*!p:b,t:op,s:30*/,
+    input logic [2:0] func  /*!t:f*/,
+    input logic [2:0] shift_count_d  /*!t:shift*/
 );
   function automatic checkC(input [16:0] i);
     checkC = i[16];
@@ -22,22 +22,22 @@ module alu_m (
   endfunction
 
 
-  reg  C;
-  reg  V;
-  wire Z;
-  wire N;
+  logic C;
+  logic V;
+  logic Z;
+  logic N;
   assign CVZN[3:0] = {C, V, Z, N};
 
-  wire [16:0] wA = {1'd0, A};
-  wire [16:0] wB = {1'd0, B};
-  reg  [16:0] wS;
+  logic [16:0] wA = {1'd0, A};
+  logic [16:0] wB = {1'd0, B};
+  logic [16:0] wS;
 
-  assign Z = S == 16'd0;
+  assign Z = (S == 16'd0);
   assign N = S[15];
   assign S = wS[15:0];
 
 
-  wire [4:0] wShiftCount = 5'd1 + {2'b0, shif_count_ni};
+  logic [4:0] wShiftCount = 5'd1 + {2'b0, shift_count_d};
 
 
   always_comb begin
@@ -165,4 +165,6 @@ module alu_m (
       end
     endcase
   end
+
+
 endmodule
