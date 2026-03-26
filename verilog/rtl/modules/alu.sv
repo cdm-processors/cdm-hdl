@@ -1,15 +1,15 @@
 `timescale 1ns / 1ps
 
 module alu (
-    input logic [15:0] A  /*!p:l*/,
+    input logic [15:0] A,  /*!p:l*/
     input logic [15:0] B,
-    input logic Cin  /*!p:t,t:Cin*/,
+    input logic carry_in,  /*!p:t,t:Cin*/
 
-    output logic [15:0] S  /*!p:r*/,
+    output logic [15:0] S,  /*!p:r*/
     output logic [ 3:0] CVZN,
 
-    input logic [2:0] op_type  /*!p:b,t:op,s:30*/,
-    input logic [2:0] func  /*!t:f*/,
+    input logic [2:0] op_type,  /*!p:b,t:op,s:30*/
+    input logic [2:0] func,  /*!t:f*/
     input logic [2:0] shift_count_d  /*!t:shift*/
 );
   function automatic checkC(input [16:0] i);
@@ -28,17 +28,19 @@ module alu (
   logic N;
   assign CVZN[3:0] = {C, V, Z, N};
 
-  logic [16:0] wA = {1'd0, A};
-  logic [16:0] wB = {1'd0, B};
-  logic [16:0] wS;
+  logic [16:0] wA;
+  logic [16:0] wB;
+  assign wA =  {1'd0, A};
+  assign wB = {1'd0, B};
 
+  logic [16:0] wS;
   assign Z = (S == 16'd0);
   assign N = S[15];
   assign S = wS[15:0];
 
 
-  logic [4:0] wShiftCount = 5'd1 + {2'b0, shift_count_d};
-
+  logic [4:0] wShiftCount;
+  assign wShiftCount = 5'd1 + {2'b0, shift_count_d};
 
   always_comb begin
     case (op_type)
@@ -75,19 +77,19 @@ module alu (
             V  = checkV(S, A, B);
           end
           5: begin  // ADC
-            wS = wA + wB + {16'd0, Cin};
+            wS = wA + wB + {16'd0, carry_in};
             C  = checkC(wS);
-            V  = checkV(S, A, B + {15'd0, Cin});  // TODO: maybe there's overflow in second arg
+            V  = checkV(S, A, B + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
           6: begin  // SUB
             wS = wA + (wB ^ 17'hffff) + 1;
             C  = checkC(wS);
             V  = checkV(S, A, (~B) + 1);  // TODO: maybe there's overflow in second arg
           end
-          7: begin  // SBC
-            wS = wA + (wB ^ 17'hffff) + {16'd0, Cin};
+          7: begin  // SUBC
+            wS = wA + (wB ^ 17'hffff) + 1 + {16'd0, carry_in};
             C  = checkC(wS);
-            V  = checkV(S, A, (~B) + {15'd0, Cin});  // TODO: maybe there's overflow in second arg
+            V  = checkV(S, A, (~B) + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
         endcase
       end
@@ -150,14 +152,14 @@ module alu (
           5: begin  // RCL
             wS = {
               1'b0,
-              (A << wShiftCount) | {{15'd0, Cin} << (wShiftCount - 1)} |  {A >> (16 - wShiftCount + 1)}
+              (A << wShiftCount) | {{15'd0, carry_in} << (wShiftCount - 1)} |  {A >> (16 - wShiftCount + 1)}
             };
             C = wA[16-wShiftCount];
           end
           6: begin  // RCR
             wS = {
               1'b0,
-              (A >> wShiftCount) | {{15'd0, Cin} << (16 - wShiftCount)} | {A << (16 - wShiftCount + 1)}
+              (A >> wShiftCount) | {{15'd0, carry_in} << (16 - wShiftCount)} | {A << (16 - wShiftCount + 1)}
             };
             C = wA[wShiftCount-1];
           end
