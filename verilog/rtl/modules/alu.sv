@@ -69,7 +69,7 @@ module alu (
           3: begin  // BIC
             C  = 0;
             V  = 0;
-            wR = wA & (wB ^ 17'hffff);
+            wR = wA & (~wB);
           end
           4: begin  // ADD
             wR = A + B;
@@ -82,12 +82,12 @@ module alu (
             V  = checkV(R, A, B + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
           6: begin  // SUB
-            wR = wA + (wB ^ 17'hffff) + 1;
+            wR = wA + (~wB) + 1;
             C  = checkC(wR);
             V  = checkV(R, A, (~B) + 1);  // TODO: maybe there's overflow in second arg
           end
           7: begin  // SUBC
-            wR = wA + (wB ^ 17'hffff) + 1 + {16'd0, carry_in};
+            wR = wA + (~wB) + 1 + {16'd0, carry_in};
             C  = checkC(wR);
             V  = checkV(R, A, (~B) + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
@@ -101,12 +101,12 @@ module alu (
             V  = 0;
           end
           0: begin  // NEG
-            wR = (wA ^ 17'hffff) + 1;
+            wR = (~wA) + 1;
             C  = checkC(wR);
             V  = A == 16'h8000;
           end
           1: begin  // NOT
-            wR = wA ^ 17'hffff;
+            wR = (~wA);
             C  = 0;
             V  = 0;
           end
