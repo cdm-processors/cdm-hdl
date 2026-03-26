@@ -1,22 +1,21 @@
-// `define REG_CNT 32
-// `define REG_BUS ($clog2(`REG_CNT)) // REG_BUS = 5
-// `define XLEN 32
+`include "core_base.svh"
 
-module register_file_m #(
-    parameter XLEN = 16,
-    parameter REG_CNT = 8,
+module register_file_m import core_base_pkg::*;
+#(
+    parameter XLEN = XLEN,
+    parameter REG_CNT = REG_CNT,
 
-    localparam REG_BUS = ($clog2(REG_CNT))
+    localparam REG_ADDR_W = ($clog2(REG_CNT))
 ) (
     input logic clk,
 
-    input logic [REG_BUS-1:0] rsi1,
+    input logic [REG_ADDR_W-1:0] rsi1,
     output logic [XLEN-1:0] rs1,
 
-    input logic [REG_BUS-1:0] rsi2,
+    input logic [REG_ADDR_W-1:0] rsi2,
     output logic [XLEN-1:0] rs2,
 
-    input logic [REG_BUS-1:0] rdi,
+    input logic [REG_ADDR_W-1:0] rdi,
     input logic [XLEN-1:0] rd,
 
     input logic we
@@ -24,7 +23,7 @@ module register_file_m #(
 
   logic [XLEN-1:0] regFile[0:REG_CNT-1] = '{default: 0};  // or no init?
 
-  function automatic logic [XLEN-1:0] rs(input [REG_BUS-1:0] rsi);
+  function automatic logic [XLEN-1:0] rs(input [REG_ADDR_W-1:0] rsi);
     rs = regFile[rsi];
   endfunction
 

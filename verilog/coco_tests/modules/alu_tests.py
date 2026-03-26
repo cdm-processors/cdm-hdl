@@ -10,20 +10,20 @@ async def check(dut, op_type, func, A, B=0, carry=0, shift=0, expected=0):
     dut.A.value = A
     dut.B.value = B
     dut.carry_in.value = carry
-    dut.shift_count_d.value = shift
+    dut.shamt.value = shift
 
     await Timer(1, unit="ns")
     try:
-        assert dut.S.value == (expected & 0xFFFF)
+        assert dut.R.value == (expected & 0xFFFF)
     except Exception as err:
         print(dut.A.value)
         print(dut.B.value)
         print(dut.carry_in.value)
-        print(dut.S.value)
+        print(dut.R.value)
         
         print(dut.A.value.to_signed())
         print(dut.B.value.to_signed())
-        print(dut.S.value.to_signed())
+        print(dut.R.value.to_signed())
         print(expected)
         
         print(A, B, shift, op_type, func)

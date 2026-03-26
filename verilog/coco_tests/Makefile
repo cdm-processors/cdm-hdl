@@ -2,8 +2,10 @@
 TOPLEVEL_LANG = verilog
 SIM = icarus
 
-VERILOG_SRC= $(CURDIR)/../
-RTL_DIR = ${VERILOG_SRC}/rtl
+VERILOG_SRC= $(CURDIR)/..
+RTL_DIR = $(VERILOG_SRC)/rtl
+
+COMPILE_ARGS = -I$(RTL_DIR)
 
 #_____________TESTS______________
 COCOTB_TEST_MODULES = modules.alu_tests
