@@ -1,0 +1,5 @@
+__pycache__
+
+verilog/coco_tests/sim_build
+verilog/coco_tests/results.xml
+**/venv
