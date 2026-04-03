@@ -15,15 +15,15 @@ module decoder import core_base_pkg::*;
 
     output logic [2:0] alu_func,
     output logic [2:0] alu_op_type,
-    output logic [2:0] shift_count_d,
+    output logic [2:0] shamt,
 
     output logic [5:0] imm6_d,
     output logic [8:0] imm9_d,
 
     output flag_t imm6,
-    output logic int_flag,
-    output logic check_branch,
-    output logic read_carry
+    output flag_t int_flag,
+    output flag_t check_branch,
+    output flag_t read_carry
 );
 
     logic [1:0] postf     = instr[12:11]; // postfix of encoding
@@ -44,7 +44,7 @@ module decoder import core_base_pkg::*;
 //____________________ALU______________________
     wire [2:0] alu_op_d0 = instr[8:6];
     wire [2:0] alu_op_d1 = instr[11:9];
-    assign shift_count_d = inst[8:6];
+    assign shamt = inst[8:6];
 
 
 //____________________DATA______________________
@@ -57,49 +57,55 @@ module decoder import core_base_pkg::*;
 
 
 //__________________OP_PARSING______________________
-    logic op0_op        = (inst_type == 0) && (postf == 2'b00);
-    logic br_abs_d_op   = (inst_type == 0) && (postf == 2'b01);
-    logic shifts_op     = (inst_type == 0) && (postf[0] == 1);
-    logic op1_op        = (inst_type == 1);
-    logic op2_op        = (inst_type == 2) && (XY == 2'b00);
-    logic alu3_ind_op   = (inst_type == 2) && (XY == 2'b01);
-    logic mem2_op       = (inst_type == 2) && (XY == 2'b10);
-    logic alu2_op       = (inst_type == 2) && (XY == 2'b11);
-    logic imm6_op       = (inst_type == 3);
-    logic imm9_op       = (inst_type == 4);
-    logic mem3_op       = (inst_type == 5) && (XY[0] == 0);
-    logic alu3_op       = (inst_type == 5) && (XY[0] == 1);
-    logic br_rel_n_d_op = (inst_type == 6);
-    logic br_rel_p_d_op = (inst_type == 7);
+    logic op0_d        = (inst_type == 0) && (postf == 2'b00);
+    logic br_abs_d_d   = (inst_type == 0) && (postf == 2'b01);
+    logic shifts_d     = (inst_type == 0) && (postf[0] == 1);
+    logic op1_d        = (inst_type == 1);
+    logic op2_d        = (inst_type == 2) && (XY == 2'b00);
+    logic alu3_ind_d   = (inst_type == 2) && (XY == 2'b01);
+    logic mem2_d       = (inst_type == 2) && (XY == 2'b10);
+    logic alu2_d       = (inst_type == 2) && (XY == 2'b11);
+    logic imm6_d       = (inst_type == 3);
+    logic imm9_d       = (inst_type == 4);
+    logic mem3_d       = (inst_type == 5) && (XY[0] == 0);
+    logic alu3_d       = (inst_type == 5) && (XY[0] == 1);
+    logic br_rel_n_d   = (inst_type == 6);
+    logic br_rel_p_d   = (inst_type == 7);
 
 
-    assign imm6_flag = imm6_op;
-    assign int_flag = imm9_flag && op_type_d3[3:1] == 0;
-    assign check_branch = br_abs_d || br_rel_n_d || br_rel_p_d;
-
-    assign rs0 = imm6_flag ? rd_d : rs0_d;
-    assign rs1 = (op1 || alu3_ind) ? rd_d : rs1_d;
+//__________________REGISTERS______________________
+    assign rs0 = imm6_d ? rd_d : rs0_d;
+    assign rs1 = (op1_d || alu3_ind_d) ? rd_d : rs1_d;
     assign rd  = rd_d;
 
-    wire [2:0] alu_op_type_tmp = {shifts, alu2, alu3 || alu3_ind};
-    assign alu_op_type = |alu_op_type_tmp ? alu_op_type_tmp : 3'b001;
 
-    wire arith_carry = shifts || alu3;
-
-    logic [2:0] alu_func_tmp;
-    assign alu_func = alu_func_tmp;
+//__________________ALU_FUNC_______________________
+    logic [2:0] _alu_func;
     always_comb begin
-        if (arith_carry || alu2 || alu3_ind)
-            if (alu2 || alu3_ind) alu_func_tmp = alu_op_d0;
-            else alu_func_tmp = alu_op_d1;
-        else if (imm6_flag && (op_type_d3[3:1] == 3'b111)) alu_func_tmp = 3'd6;
-        else alu_func_tmp = 3'd5;
+        if (shifts_d || alu2_d  || alu3_d || alu3_ind_d) begin
+            if (alu2_d || alu3_ind_d) _alu_func = alu_op_d0;
+            else _alu_func = alu_op_d1;
+        end
+        else if (imm6_d && (op_type_d3[3:1] == 3'b111)) _alu_func = 3'd6;
+        else _alu_func = 3'd5;
     end
+    assign alu_func = _alu_func;
 
-    assign read_carry =    (alu3   && (alu_func_tmp == 3'd5 || alu_func_tmp == 3'd7))
-                         || (shifts && (alu_func_tmp == 3'd5 || alu_func_tmp == 3'd6));
 
-    // Branch logic
+//__________________SET_FLAGS______________________
+
+    logic [2:0] alu_op_type_raw = {shifts, alu2, alu3 || alu3_ind};
+    assign alu_op_type = |alu_op_type_raw ? alu_op_type_raw : 3'b001;
+
+
+    assign imm6_flag = imm6_d;
+    assign int_flag = imm9_d && op_type_d3[3:1] == 0;
+    assign check_branch = br_abs_d || br_rel_n_d || br_rel_p_d;
+    assign read_carry =    (alu3   && (_alu_func == 3'd5 || _alu_func == 3'd7))
+                         || (shifts && (_alu_func == 3'd5 || _alu_func == 3'd6));
+
+//___________________BRANCH_________________________
+
     wire br_go;
     branch_logic u_branch_logic (
         .cccc(br_abs_d ? br_abs_flags_d : br_rel_flags_d),
