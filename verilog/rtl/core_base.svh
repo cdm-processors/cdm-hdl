@@ -8,10 +8,10 @@ package core_base_pkg;
     localparam logic [XLEN-1:0] PC_STEP  = 16'd2;
 
     localparam int REG_CNT = 8;
-    localparam int REG_ADDR_W = ($clog2(REG_CNT))
+    localparam int REG_ADDR_W = ($clog2(REG_CNT));
     // typedef logic [XLEN-1:0] reg_t;
     // typedef logic[REG_ADDR_W-1:0] reg_addr_t // maybe?
 
 
-    typedef logic sig_t; // microcode signal
+    typedef logic sig_t; // ucode signal
 endpackage
