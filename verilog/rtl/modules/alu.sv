@@ -87,7 +87,7 @@ module alu (
             V  = checkV(R, A, (~B) + 1);  // TODO: maybe there's overflow in second arg
           end
           7: begin  // SUBC
-            wR = wA + (~wB) + 1 + {16'd0, carry_in};
+            wR = wA + (~wB) + {16'd0, carry_in};
             C  = checkC(wR);
             V  = checkV(R, A, (~B) + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
