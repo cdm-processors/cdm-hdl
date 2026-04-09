@@ -39,8 +39,8 @@ module decoder import core_base_pkg::*;
 
 
 //___________________BRANCH____________________
-    logic [3:0] br_rel_flags_d = instr[12:9];
-    logic [3:0] br_abs_flags_d = instr[3:0];
+    logic [3:0] br_rel_cond_d = instr[12:9];
+    logic [3:0] br_abs_cond_d = instr[3:0];
 
 
 //____________________ALU______________________
@@ -107,8 +107,9 @@ module decoder import core_base_pkg::*;
 
 //___________________BRANCH_________________________
     logic br_go;
+    logic [3:0] br_cond = br_abs_d ? br_abs_cond_d : br_rel_cond_d;
     branch_logic u_branch_logic (
-        .cccc(br_abs_d ? br_abs_flags_d : br_rel_flags_d),
+        .cond(br_cond),
         .CVZN(CVZN),
         .go  (br_go)
     );

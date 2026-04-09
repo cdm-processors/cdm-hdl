@@ -2,7 +2,7 @@
 
 module branch_logic
 (
-    input   logic [3:0] cccc,
+    input   logic [3:0] cond,
     input   logic [3:0] CVZN,
 
     output  logic       go
@@ -10,12 +10,12 @@ module branch_logic
     logic C, V, Z, N;
     assign {C, V, Z, N} = CVZN;
 
-    logic reverse = cccc[0];
+    logic reverse = cond[0];
     logic dcsn;
     assign go = dcsn ^ reverse;
 
     always_comb begin
-        unique case (cccc[3:1])
+        unique case (cond[3:1])
             0: dcsn = Z;
             1: dcsn = C;
             2: dcsn = N;
