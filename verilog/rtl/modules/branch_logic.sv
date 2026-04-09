@@ -10,7 +10,6 @@ module branch_logic
     logic C, V, Z, N;
     assign {C, V, Z, N} = CVZN;
 
-
     logic reverse = cccc[0];
     logic dcsn;
     assign go = dcsn ^ reverse;

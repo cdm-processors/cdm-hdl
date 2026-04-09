@@ -8,11 +8,11 @@ module decoder import core_base_pkg::*;
     input u_phase_t phase; 
     input logic [ 3:0] CVZN,
 
-    output logic [9:0] ucode_addr,
+    output u_addr_t ucode_addr,
 
-    output logic [2:0] rs0,
-    output logic [2:0] rs1,
-    output logic [2:0] rd,
+    output reg_addr_t rs0,
+    output reg_addr_t rs1,
+    output reg_addr_t rd,
 
     output logic [2:0] alu_func,
     output logic [2:0] alu_op_type,
@@ -36,6 +36,7 @@ module decoder import core_base_pkg::*;
     logic [3:0] op_type_d1 = instr[6:3];
     logic [3:0] op_type_d2 = instr[9:6];
     logic [3:0] op_type_d3 = instr[12:9];
+
 
 //___________________BRANCH____________________
     logic [3:0] br_rel_flags_d = instr[12:9];
@@ -117,6 +118,7 @@ module decoder import core_base_pkg::*;
     logic br_rel_n   = br_rel_n_d && br_go;
     logic br_rel_p   = br_rel_p_d && br_go;
     logic br_rel_nop = (br_rel_n_d || br_rel_p_d) && !br_go;
+
 
 //_________________UCODE_ADDR________________________
 
