@@ -15,4 +15,7 @@ package core_base_pkg;
 
     typedef logic sig_t; // ucode signal
     typedef logic flag_t;
+    typedef logic[2:0] u_phase_t;
+    typedef logic[2:0] reg_addr_t;
+
 endpackage

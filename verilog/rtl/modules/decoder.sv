@@ -5,6 +5,7 @@
 module decoder import core_base_pkg::*;
 (
     input logic [XLEN-1:0] instr,
+    input u_phase_t phase; 
     input logic [ 3:0] CVZN,
 
     output logic [9:0] ucode_addr,
@@ -20,10 +21,10 @@ module decoder import core_base_pkg::*;
     output logic [5:0] imm6_d,
     output logic [8:0] imm9_d,
 
-    output flag_t imm6,
-    output flag_t int_flag,
-    output flag_t check_branch,
-    output flag_t read_carry
+    output flag_t imm6_flag,
+    output flag_t carry_flag,
+    output flag_t is_int,
+    output flag_t is_branch
 );
 
     logic [1:0] postf     = instr[12:11]; // postfix of encoding
@@ -82,7 +83,7 @@ module decoder import core_base_pkg::*;
 //__________________ALU_FUNC_______________________
     logic [2:0] _alu_func;
     always_comb begin
-        if (shifts_d || alu2_d  || alu3_d || alu3_ind_d) begin
+        if (shifts_d || alu2_d || alu3_d || alu3_ind_d) begin
             if (alu2_d || alu3_ind_d) _alu_func = alu_op_d0;
             else _alu_func = alu_op_d1;
         end
@@ -93,30 +94,31 @@ module decoder import core_base_pkg::*;
 
 
 //__________________SET_FLAGS______________________
-
     logic [2:0] alu_op_type_raw = {shifts, alu2, alu3 || alu3_ind};
     assign alu_op_type = |alu_op_type_raw ? alu_op_type_raw : 3'b001;
 
 
     assign imm6_flag = imm6_d;
-    assign int_flag = imm9_d && op_type_d3[3:1] == 0;
-    assign check_branch = br_abs_d || br_rel_n_d || br_rel_p_d;
-    assign read_carry =    (alu3   && (_alu_func == 3'd5 || _alu_func == 3'd7))
+    assign is_int = imm9_d && op_type_d3[3:1] == 0;
+    assign is_branch = br_abs_d || br_rel_n_d || br_rel_p_d;
+    assign carry_flag =    (alu3   && (_alu_func == 3'd5 || _alu_func == 3'd7))
                          || (shifts && (_alu_func == 3'd5 || _alu_func == 3'd6));
 
 //___________________BRANCH_________________________
-
-    wire br_go;
+    logic br_go;
     branch_logic u_branch_logic (
         .cccc(br_abs_d ? br_abs_flags_d : br_rel_flags_d),
         .CVZN(CVZN),
         .go  (br_go)
     );
-    wire br_abs     = br_abs_d && br_go;
-    wire br_abs_nop = br_abs_d && !br_abs;
-    wire br_rel_n   = br_rel_n_d && br_go;
-    wire br_rel_p   = br_rel_p_d && br_go;
-    wire br_rel_nop = (br_rel_n_d && !br_rel_n) || (br_rel_p_d && !br_rel_p);
+    logic br_abs     = br_abs_d && br_go;
+    logic br_abs_nop = br_abs_d && !br_go;
+
+    logic br_rel_n   = br_rel_n_d && br_go;
+    logic br_rel_p   = br_rel_p_d && br_go;
+    logic br_rel_nop = (br_rel_n_d || br_rel_p_d) && !br_go;
+
+//_________________UCODE_ADDR________________________
 
     logic [3:0] direct_op_type;
     always_comb begin
@@ -131,15 +133,26 @@ module decoder import core_base_pkg::*;
         else direct_op_type = 4'h8;
     end
 
+    typedef enum logic [2:0] {
+        UCODE_OP0    = 3'h0,
+        UCODE_OP1    = 3'h1,
+        UCODE_OP2    = 3'h2,
+        UCODE_MEM2   = 3'h3,
+        UCODE_IMM6   = 3'h4,
+        UCODE_IMM9   = 3'h5,
+        UCODE_MEM3   = 3'h6,
+        UCODE_DIRECT = 3'h7
+    } ucode_sel_e;
+
     always_comb begin
-        if      (direct_op_type != 4'h8) ucode_addr = {phase, 3'h7, direct_op_type};
-        else if (mem3) ucode_addr = {phase, 3'h6, op_type_d3};
-        else if (imm9_flag) ucode_addr = {phase, 3'h5, op_type_d3};
-        else if (imm6_flag) ucode_addr = {phase, 3'h4, op_type_d3};
-        else if (mem2) ucode_addr = {phase, 3'h3, op_type_d2};
-        else if (op2) ucode_addr = {phase, 3'h2, op_type_d2};
-        else if (op1) ucode_addr = {phase, 3'h1, op_type_d1};
-        else if (op0) ucode_addr = {phase, 3'h0, op_type_d0};
+        if (direct_op_type != 4'h8) ucode_addr = {phase, UCODE_DIRECT,  direct_op_type};
+        else if (mem3_d)            ucode_addr = {phase, UCODE_MEM3,    op_type_d3};
+        else if (imm9_d)            ucode_addr = {phase, UCODE_IMM9,    op_type_d3};
+        else if (imm6_d)            ucode_addr = {phase, UCODE_IMM6,    op_type_d3};
+        else if (mem2_d)            ucode_addr = {phase, UCODE_MEM2,    op_type_d2};
+        else if (op2_d)             ucode_addr = {phase, UCODE_OP2,     op_type_d2};
+        else if (op1_d)             ucode_addr = {phase, UCODE_OP1,     op_type_d1};
+        else if (op0_d)             ucode_addr = {phase, UCODE_OP0,     op_type_d0};
     end
 
 endmodule
