@@ -4,29 +4,28 @@
 
 module decoder import core_base_pkg::*;
 (
-    input logic [XLEN-1:0] instr,
-    input u_phase_t phase,
-    input logic [ 3:0] CVZN,
+    input  logic [XLEN-1:0] instr,
+    input  u_phase_t        phase,
+    input  logic [3:0]      CVZN,
 
-    output u_addr_t ucode_addr,
+    output u_addr_t         ucode_addr,
 
-    output reg_addr_t rs0,
-    output reg_addr_t rs1,
-    output reg_addr_t rd,
+    output reg_addr_t       rs0,
+    output reg_addr_t       rs1,
+    output reg_addr_t       rd,
 
-    output logic [2:0] alu_func,
-    output logic [2:0] alu_op_type,
-    output logic [2:0] shamt,
+    output logic [2:0]      alu_func,
+    output logic [2:0]      alu_op_type,
+    output logic [2:0]      shamt,
 
-    output logic [5:0] imm6,
-    output logic [8:0] imm9,
+    output logic [5:0]      imm6,
+    output logic [8:0]      imm9,
 
-    output flag_t imm6_flag,
-    output flag_t carry_flag,
-    output flag_t is_int,
-    output flag_t is_branch
+    output flag_t           imm6_flag,
+    output flag_t           carry_flag,
+    output flag_t           is_int,
+    output flag_t           is_branch
 );
-
     logic [1:0] postf     = instr[12:11]; // postfix of encoding
     logic [2:0] inst_type = instr[15:13];
 
@@ -122,18 +121,17 @@ module decoder import core_base_pkg::*;
 
 
 //_________________UCODE_ADDR________________________
-
     logic [3:0] direct_op_type;
     always_comb begin
-        if      (br_rel_nop) direct_op_type = 4'h7;
-        else if (br_abs_nop) direct_op_type = 4'h6;
-        else if (br_rel_n) direct_op_type = 4'h5;
-        else if (br_rel_p) direct_op_type = 4'h4;
-        else if (alu3_d) direct_op_type = 4'h3;
-        else if (alu3_ind_d) direct_op_type = 4'h2;
+        if      (br_rel_nop)         direct_op_type = 4'h7;
+        else if (br_abs_nop)         direct_op_type = 4'h6;
+        else if (br_rel_n)           direct_op_type = 4'h5;
+        else if (br_rel_p)           direct_op_type = 4'h4;
+        else if (alu3_d)             direct_op_type = 4'h3;
+        else if (alu3_ind_d)         direct_op_type = 4'h2;
         else if (shifts_d || alu2_d) direct_op_type = 4'h1;
-        else if (br_abs_d) direct_op_type = 4'h0;
-        else direct_op_type = 4'h8;
+        else if (br_abs_d)           direct_op_type = 4'h0;
+        else                         direct_op_type = 4'h8;
     end
 
     typedef enum logic [2:0] {
