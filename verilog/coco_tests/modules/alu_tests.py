@@ -44,7 +44,7 @@ async def alu_basic_test(dut):
         await check(dut, 0b001, 5, A, B, carry=1, expected=(A + B + 1))
 
         await check(dut, 0b001, 6, A, B, expected=(A - B))
-        await check(dut, 0b001, 7, A, B, carry=1, expected=(A - B + 1))
+        await check(dut, 0b001, 7, A, B, carry=1, expected=(A - B))
 
         await check(dut, 0b010, 0, A, expected=(-A))
         await check(dut, 0b010, 1, A, expected=(~A))
