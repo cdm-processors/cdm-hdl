@@ -13,14 +13,12 @@ COMPILE_ARGS = -I$(RTL_DIR)
 # VERILOG_SOURCES = ${RTL_DIR}/modules/alu.sv
 # TOPLEVEL = alu
 
-# all only for cocotb with set args
 
 ifeq ($(MAKECMDGOALS),)
 ifndef VERILOG_SOURCES
 $(error ERROR: use make *_tests instead of make)
 endif
 endif
-
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
