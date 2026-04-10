@@ -10,9 +10,9 @@ module decoder import core_base_pkg::*;
 
     output u_addr_t         ucode_addr,
 
-    output reg_addr_t       rs0,
-    output reg_addr_t       rs1,
-    output reg_addr_t       rd,
+    output reg_addr_t       rsi0,
+    output reg_addr_t       rsi1,
+    output reg_addr_t       rdi,
 
     output logic [2:0]      alu_func,
     output logic [2:0]      alu_op_type,
@@ -43,15 +43,15 @@ module decoder import core_base_pkg::*;
 
 
 //____________________ALU______________________
-    wire [2:0] alu_op_d0 = instr[8:6];
-    wire [2:0] alu_op_d1 = instr[11:9];
+    logic [2:0] alu_op_d0 = instr[8:6];
+    logic [2:0] alu_op_d1 = instr[11:9];
     assign shamt = instr[8:6];
 
 
 //____________________DATA______________________
-    wire [2:0] rs0_d = instr[5:3];
-    wire [2:0] rs1_d = instr[8:6];
-    wire [2:0] rd_d  = instr[2:0];
+    logic [2:0] rsi0_d = instr[5:3];
+    logic [2:0] rsi1_d = instr[8:6];
+    logic [2:0] rdi_d  = instr[2:0];
 
     assign imm6 = instr[8:3];
     assign imm9 = instr[8:0];
@@ -75,9 +75,9 @@ module decoder import core_base_pkg::*;
 
 
 //__________________REGISTERS______________________
-    assign rs0 = imm6_d ? rd_d : rs0_d;
-    assign rs1 = (op1_d || alu3_ind_d) ? rd_d : rs1_d;
-    assign rd  = rd_d;
+    assign rsi0 = imm6_d ? rdi_d : rsi0_d;
+    assign rsi1 = (op1_d || alu3_ind_d) ? rdi_d : rsi1_d;
+    assign rdi  = rdi_d;
 
 
 //__________________ALU_FUNC_______________________
