@@ -1,8 +1,10 @@
 import cocotb
 from cocotb.triggers import Timer
 import random
-from .config import logger
+from .config import get_logger
 
+logger = get_logger("decoder")
+ITERATIONS = 20
 
 UCODE_OP0 = 0
 UCODE_OP1 = 1
@@ -71,7 +73,7 @@ async def verify_decoder(
 
 @cocotb.test()
 async def test_0op(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         op = random.randint(0, 15)
         instr = (0b00000 << 11) | op
         expected_u = get_ucode(0, UCODE_OP0, op)
@@ -91,7 +93,7 @@ async def test_br_abs(dut):
 
 @cocotb.test()
 async def test_shifts(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         alu_op = random.randint(0, 7)
         shift = random.randint(0, 7)
         rsi = random.randint(0, 7)
@@ -103,7 +105,7 @@ async def test_shifts(dut):
 
 @cocotb.test()
 async def test_1op(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         op_type = random.randint(0, 15)
         rdi = random.randint(0, 7)
         instr = (1 << 13) | (op_type << 3) | rdi
@@ -113,7 +115,7 @@ async def test_1op(dut):
 
 @cocotb.test()
 async def test_2op(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         op_type = random.randint(0, 15)
         rsi = random.randint(0, 7)
         rdi = random.randint(0, 7)
@@ -124,7 +126,7 @@ async def test_2op(dut):
 
 @cocotb.test()
 async def test_alu3_ind(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         alu_op = random.randint(0, 7)
         rsi = random.randint(0, 7)
         rdi = random.randint(0, 7)
@@ -135,7 +137,7 @@ async def test_alu3_ind(dut):
 
 @cocotb.test()
 async def test_mem2(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         op_type = random.randint(0, 15)
         rsi = random.randint(0, 7)
         rdi = random.randint(0, 7)
@@ -146,7 +148,7 @@ async def test_mem2(dut):
 
 @cocotb.test()
 async def test_alu2(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         alu_op = random.randint(0, 7)
         rsi = random.randint(0, 7)
         rdi = random.randint(0, 7)
@@ -157,7 +159,7 @@ async def test_alu2(dut):
 
 @cocotb.test()
 async def test_imm6(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         op_type = random.randint(0, 15)
         imm = random.randint(0, 63)
         rdi = random.randint(0, 7)
@@ -168,7 +170,7 @@ async def test_imm6(dut):
 
 @cocotb.test()
 async def test_imm9(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         op_type = random.randint(0, 15)
         imm = random.randint(0, 511)
         instr = (4 << 13) | (op_type << 9) | imm
@@ -178,7 +180,7 @@ async def test_imm9(dut):
 
 @cocotb.test()
 async def test_mem3(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         op_type = random.randint(0, 7)
         rsi1 = random.randint(0, 7)
         rsi0 = random.randint(0, 7)
@@ -191,7 +193,7 @@ async def test_mem3(dut):
 
 @cocotb.test()
 async def test_alu3(dut):
-    for _ in range(4):
+    for _ in range(ITERATIONS):
         alu_op = random.randint(0, 7)
         rsi1 = random.randint(0, 7)
         rsi0 = random.randint(0, 7)
