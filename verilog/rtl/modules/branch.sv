@@ -10,10 +10,10 @@ module branch_logic
     logic C, V, Z, N;
     assign {C, V, Z, N} = CVZN;
 
-    logic reverse = cond[0];
+    logic reverse;
+    assign reverse = cond[0];
+    
     logic dcsn;
-    assign go = dcsn ^ reverse;
-
     always_comb begin
         unique case (cond[3:1])
             0: dcsn = Z;
@@ -26,4 +26,6 @@ module branch_logic
             7: dcsn = 1;
         endcase
     end
+
+    assign go = dcsn ^ reverse;
 endmodule

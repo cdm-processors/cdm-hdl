@@ -26,52 +26,52 @@ module decoder import core_base_pkg::*;
     output flag_t           is_int,
     output flag_t           is_branch
 );
-    logic [1:0] postf     = instr[12:11]; // postfix of encoding
-    logic [2:0] inst_type = instr[15:13];
+    wire [1:0] postf     = instr[12:11]; // postfix of encoding
+    wire [2:0] inst_type = instr[15:13];
 
 
 //__________________OP_TYPE____________________
-    logic [3:0] op_type_d0 = instr[3:0];
-    logic [3:0] op_type_d1 = instr[6:3];
-    logic [3:0] op_type_d2 = instr[9:6];
-    logic [3:0] op_type_d3 = instr[12:9];
+    wire [3:0] op_type_d0 = instr[3:0];
+    wire [3:0] op_type_d1 = instr[6:3];
+    wire [3:0] op_type_d2 = instr[9:6];
+    wire [3:0] op_type_d3 = instr[12:9];
 
 
 //___________________BRANCH____________________
-    logic [3:0] br_rel_cond_d = instr[12:9];
-    logic [3:0] br_abs_cond_d = instr[3:0];
+    wire [3:0] br_rel_cond_d = instr[12:9];
+    wire [3:0] br_abs_cond_d = instr[3:0];
 
 
 //____________________ALU______________________
-    logic [2:0] alu_op_d0 = instr[8:6];
-    logic [2:0] alu_op_d1 = instr[11:9];
+    wire [2:0] alu_op_d0 = instr[8:6];
+    wire [2:0] alu_op_d1 = instr[11:9];
     assign shamt = instr[8:6];
 
 
 //____________________DATA______________________
-    logic [2:0] rsi0_d = instr[5:3];
-    logic [2:0] rsi1_d = instr[8:6];
-    logic [2:0] rdi_d  = instr[2:0];
+    wire [2:0] rsi0_d = instr[5:3];
+    wire [2:0] rsi1_d = instr[8:6];
+    wire [2:0] rdi_d  = instr[2:0];
 
     assign imm6 = instr[8:3];
     assign imm9 = instr[8:0];
 
 
-//__________________OP_PARSING______________________
-    logic op0_d        = (inst_type == 0) && (postf == 2'b00);
-    logic br_abs_d     = (inst_type == 0) && (postf == 2'b01);
-    logic shifts_d     = (inst_type == 0) && (postf[0] == 1);
-    logic op1_d        = (inst_type == 1);
-    logic op2_d        = (inst_type == 2) && (postf == 2'b00);
-    logic alu3_ind_d   = (inst_type == 2) && (postf == 2'b01);
-    logic mem2_d       = (inst_type == 2) && (postf == 2'b10);
-    logic alu2_d       = (inst_type == 2) && (postf == 2'b11);
-    logic imm6_d       = (inst_type == 3);
-    logic imm9_d       = (inst_type == 4);
-    logic mem3_d       = (inst_type == 5) && (postf[0] == 0);
-    logic alu3_d       = (inst_type == 5) && (postf[0] == 1);
-    logic br_rel_n_d   = (inst_type == 6);
-    logic br_rel_p_d   = (inst_type == 7);
+//__________________OP_PARSING___________________
+    wire op0_d        = (inst_type == 0) && (postf == 2'b00);
+    wire br_abs_d     = (inst_type == 0) && (postf == 2'b01);
+    wire shifts_d     = (inst_type == 0) && (postf[1] == 1);
+    wire op1_d        = (inst_type == 1);
+    wire op2_d        = (inst_type == 2) && (postf == 2'b00);
+    wire alu3_ind_d   = (inst_type == 2) && (postf == 2'b01);
+    wire mem2_d       = (inst_type == 2) && (postf == 2'b10);
+    wire alu2_d       = (inst_type == 2) && (postf == 2'b11);
+    wire imm6_d       = (inst_type == 3);
+    wire imm9_d       = (inst_type == 4);
+    wire mem3_d       = (inst_type == 5) && (postf[1] == 0);
+    wire alu3_d       = (inst_type == 5) && (postf[1] == 1); // check and fix this
+    wire br_rel_n_d   = (inst_type == 6);
+    wire br_rel_p_d   = (inst_type == 7);
 
 
 //__________________REGISTERS______________________
@@ -81,7 +81,7 @@ module decoder import core_base_pkg::*;
 
 
 //__________________ALU_FUNC_______________________
-    logic [2:0] _alu_func;
+    wire [2:0] _alu_func;
     always_comb begin
         if (shifts_d || alu2_d || alu3_d || alu3_ind_d) begin
             if (alu2_d || alu3_ind_d) _alu_func = alu_op_d0;
@@ -94,7 +94,7 @@ module decoder import core_base_pkg::*;
 
 
 //__________________SET_FLAGS______________________
-    logic [2:0] alu_op_type_raw = {shifts_d, alu2_d, alu3_d || alu3_ind_d};
+    wire [2:0] alu_op_type_raw = {shifts_d, alu2_d, alu3_d || alu3_ind_d};
     assign alu_op_type = |alu_op_type_raw ? alu_op_type_raw : 3'b001;
 
 
@@ -105,19 +105,22 @@ module decoder import core_base_pkg::*;
                         || (shifts_d && (_alu_func == 3'd5 || _alu_func == 3'd6));
 
 //___________________BRANCH_________________________
-    logic br_go;
-    logic [3:0] br_cond = br_abs_d ? br_abs_cond_d : br_rel_cond_d;
+    wire br_go;
+    wire [3:0] br_cond = br_abs_d ? br_abs_cond_d : br_rel_cond_d;
+
     branch_logic u_branch_logic (
         .cond(br_cond),
         .CVZN(CVZN),
         .go  (br_go)
     );
-    logic br_abs     = br_abs_d && br_go;
-    logic br_abs_nop = br_abs_d && !br_go;
+    
+    wire br_abs     = br_abs_d && br_go;
+    wire br_abs_nop = br_abs_d && !br_go;
 
-    logic br_rel_n   = br_rel_n_d && br_go;
-    logic br_rel_p   = br_rel_p_d && br_go;
-    logic br_rel_nop = (br_rel_n_d || br_rel_p_d) && !br_go;
+    wire br_rel_n   = br_rel_n_d && br_go;
+    wire br_rel_p   = br_rel_p_d && br_go;
+    wire br_rel_nop = (br_rel_n_d || br_rel_p_d) && !br_go;
+    
 
 
 //_________________UCODE_ADDR________________________
