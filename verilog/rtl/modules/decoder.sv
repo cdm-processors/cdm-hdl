@@ -160,4 +160,4 @@ module decoder import core_base_pkg::*;
         else                        ucode_addr = 'x;
     end
 
-endmodule
+endmodule // decoder
