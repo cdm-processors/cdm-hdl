@@ -1,10 +1,8 @@
 import cocotb
 from cocotb.triggers import Timer
-import random
 from .config import get_logger
 
 logger = get_logger("decoder")
-ITERATIONS = 20
 
 UCODE_OP0 = 0
 UCODE_OP1 = 1
@@ -73,8 +71,7 @@ async def verify_decoder(
 
 @cocotb.test()
 async def test_0op(dut):
-    for _ in range(ITERATIONS):
-        op = random.randint(0, 15)
+    for op in range(16):
         instr = (0b00000 << 11) | op
         expected_u = get_ucode(0, UCODE_OP0, op)
         await verify_decoder(dut, instr, expected_is_branch=0, expected_ucode=expected_u)
@@ -93,138 +90,124 @@ async def test_br_abs(dut):
 
 @cocotb.test()
 async def test_shifts(dut):
-    for _ in range(ITERATIONS):
-        alu_op = random.randint(0, 7)
-        shift = random.randint(0, 7)
-        rsi = random.randint(0, 7)
-        rdi = random.randint(0, 7)
-        instr = (1 << 12) | (alu_op << 9) | (shift << 6) | (rsi << 3) | rdi
-        expected_u = get_ucode(0, UCODE_DIRECT, DIR_SHIFTS_ALU)
-        await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_shamt=shift, expected_is_branch=0, expected_ucode=expected_u)
+    for alu_op in range(8):
+        for shift in range(8):
+            for rsi in range(8):
+                for rdi in range(8):
+                    instr = (1 << 12) | (alu_op << 9) | (shift << 6) | (rsi << 3) | rdi
+                    expected_u = get_ucode(0, UCODE_DIRECT, DIR_SHIFTS_ALU)
+                    await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_shamt=shift, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_1op(dut):
-    for _ in range(ITERATIONS):
-        op_type = random.randint(0, 15)
-        rdi = random.randint(0, 7)
-        instr = (1 << 13) | (op_type << 3) | rdi
-        expected_u = get_ucode(0, UCODE_OP1, op_type)
-        await verify_decoder(dut, instr, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for op_type in range(16):
+        for rdi in range(8):
+            instr = (1 << 13) | (op_type << 3) | rdi
+            expected_u = get_ucode(0, UCODE_OP1, op_type)
+            await verify_decoder(dut, instr, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_2op(dut):
-    for _ in range(ITERATIONS):
-        op_type = random.randint(0, 15)
-        rsi = random.randint(0, 7)
-        rdi = random.randint(0, 7)
-        instr = (0b01000 << 11) | (op_type << 6) | (rsi << 3) | rdi
-        expected_u = get_ucode(0, UCODE_OP2, op_type)
-        await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for op_type in range(16):
+        for rsi in range(8):
+            for rdi in range(8):
+                instr = (0b01000 << 11) | (op_type << 6) | (rsi << 3) | rdi
+                expected_u = get_ucode(0, UCODE_OP2, op_type)
+                await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_alu3_ind(dut):
-    for _ in range(ITERATIONS):
-        alu_op = random.randint(0, 7)
-        rsi = random.randint(0, 7)
-        rdi = random.randint(0, 7)
-        instr = (0b01001 << 11) | (alu_op << 6) | (rsi << 3) | rdi
-        expected_u = get_ucode(0, UCODE_DIRECT, DIR_ALU3_IND)
-        await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for alu_op in range(8):
+        for rsi in range(8):
+            for rdi in range(8):
+                instr = (0b01001 << 11) | (alu_op << 6) | (rsi << 3) | rdi
+                expected_u = get_ucode(0, UCODE_DIRECT, DIR_ALU3_IND)
+                await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_mem2(dut):
-    for _ in range(ITERATIONS):
-        op_type = random.randint(0, 15)
-        rsi = random.randint(0, 7)
-        rdi = random.randint(0, 7)
-        instr = (0b01010 << 11) | (op_type << 6) | (rsi << 3) | rdi
-        expected_u = get_ucode(0, UCODE_MEM2, op_type)
-        await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for op_type in range(16):
+        for rsi in range(8):
+            for rdi in range(8):
+                instr = (0b01010 << 11) | (op_type << 6) | (rsi << 3) | rdi
+                expected_u = get_ucode(0, UCODE_MEM2, op_type)
+                await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_alu2(dut):
-    for _ in range(ITERATIONS):
-        alu_op = random.randint(0, 7)
-        rsi = random.randint(0, 7)
-        rdi = random.randint(0, 7)
-        instr = (0b01011 << 11) | (alu_op << 6) | (rsi << 3) | rdi
-        expected_u = get_ucode(0, UCODE_DIRECT, DIR_SHIFTS_ALU)
-        await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for alu_op in range(8):
+        for rsi in range(8):
+            for rdi in range(8):
+                instr = (0b01011 << 11) | (alu_op << 6) | (rsi << 3) | rdi
+                expected_u = get_ucode(0, UCODE_DIRECT, DIR_SHIFTS_ALU)
+                await verify_decoder(dut, instr, expected_rsi0=rsi, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_imm6(dut):
-    for _ in range(ITERATIONS):
-        op_type = random.randint(0, 15)
-        imm = random.randint(0, 63)
-        rdi = random.randint(0, 7)
-        instr = (3 << 13) | (op_type << 9) | (imm << 3) | rdi
-        expected_u = get_ucode(0, UCODE_IMM6, op_type)
-        await verify_decoder(dut, instr, expected_imm6=imm, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for op_type in range(16):
+        for imm in range(64):
+            for rdi in range(8):
+                instr = (3 << 13) | (op_type << 9) | (imm << 3) | rdi
+                expected_u = get_ucode(0, UCODE_IMM6, op_type)
+                await verify_decoder(dut, instr, expected_imm6=imm, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_imm9(dut):
-    for _ in range(ITERATIONS):
-        op_type = random.randint(0, 15)
-        imm = random.randint(0, 511)
-        instr = (4 << 13) | (op_type << 9) | imm
-        expected_u = get_ucode(0, UCODE_IMM9, op_type)
-        await verify_decoder(dut, instr, expected_imm9=imm, expected_is_branch=0, expected_ucode=expected_u)
+    for op_type in range(16):
+        for imm in range(512):
+            instr = (4 << 13) | (op_type << 9) | imm
+            expected_u = get_ucode(0, UCODE_IMM9, op_type)
+            await verify_decoder(dut, instr, expected_imm9=imm, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_mem3(dut):
-    for _ in range(ITERATIONS):
-        op_type = random.randint(0, 7)
-        rsi1 = random.randint(0, 7)
-        rsi0 = random.randint(0, 7)
-        rdi = random.randint(0, 7)
-        instr = (0b1010 << 12) | (op_type << 9) | (
-            rsi1 << 6) | (rsi0 << 3) | rdi
-        expected_u = get_ucode(0, UCODE_MEM3, op_type)
-        await verify_decoder(dut, instr, expected_rsi0=rsi0, expected_rsi1=rsi1, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for op_type in range(8):
+        for rsi1 in range(8):
+            for rsi0 in range(8):
+                for rdi in range(8):
+                    instr = (0b1010 << 12) | (op_type << 9) | (rsi1 << 6) | (rsi0 << 3) | rdi
+                    expected_u = get_ucode(0, UCODE_MEM3, op_type)
+                    await verify_decoder(dut, instr, expected_rsi0=rsi0, expected_rsi1=rsi1, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_alu3(dut):
-    for _ in range(ITERATIONS):
-        alu_op = random.randint(0, 7)
-        rsi1 = random.randint(0, 7)
-        rsi0 = random.randint(0, 7)
-        rdi = random.randint(0, 7)
-        instr = (0b1011 << 12) | (alu_op << 9) | (
-            rsi1 << 6) | (rsi0 << 3) | rdi
-        expected_u = get_ucode(0, UCODE_DIRECT, DIR_ALU3)
-        await verify_decoder(dut, instr, expected_rsi0=rsi0, expected_rsi1=rsi1, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
+    for alu_op in range(8):
+        for rsi1 in range(8):
+            for rsi0 in range(8):
+                for rdi in range(8):
+                    instr = (0b1011 << 12) | (alu_op << 9) | (rsi1 << 6) | (rsi0 << 3) | rdi
+                    expected_u = get_ucode(0, UCODE_DIRECT, DIR_ALU3)
+                    await verify_decoder(dut, instr, expected_rsi0=rsi0, expected_rsi1=rsi1, expected_rdi=rdi, expected_is_branch=0, expected_ucode=expected_u)
 
 
 @cocotb.test()
 async def test_br_rel_n(dut):
-    imm = random.randint(0, 511)
+    for imm in range(512):
+        instr_go = (6 << 13) | (14 << 9) | imm
+        expected_u_go = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_N)
+        await verify_decoder(dut, instr_go, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_go)
 
-    instr_go = (6 << 13) | (14 << 9) | imm
-    expected_u_go = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_N)
-    await verify_decoder(dut, instr_go, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_go)
-
-    instr_nop = (6 << 13) | (15 << 9) | imm
-    expected_u_nop = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_NOP)
-    await verify_decoder(dut, instr_nop, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_nop)
+        instr_nop = (6 << 13) | (15 << 9) | imm
+        expected_u_nop = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_NOP)
+        await verify_decoder(dut, instr_nop, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_nop)
 
 
 @cocotb.test()
 async def test_br_rel_p(dut):
-    imm = random.randint(0, 511)
+    for imm in range(512):
+        instr_go = (7 << 13) | (14 << 9) | imm
+        expected_u_go = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_P)
+        await verify_decoder(dut, instr_go, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_go)
 
-    instr_go = (7 << 13) | (14 << 9) | imm
-    expected_u_go = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_P)
-    await verify_decoder(dut, instr_go, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_go)
-
-    instr_nop = (7 << 13) | (15 << 9) | imm
-    expected_u_nop = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_NOP)
-    await verify_decoder(dut, instr_nop, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_nop)
+        instr_nop = (7 << 13) | (15 << 9) | imm
+        expected_u_nop = get_ucode(0, UCODE_DIRECT, DIR_BR_REL_NOP)
+        await verify_decoder(dut, instr_nop, expected_imm9=imm, expected_is_branch=1, expected_ucode=expected_u_nop)

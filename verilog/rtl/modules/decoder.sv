@@ -81,7 +81,7 @@ module decoder import core_base_pkg::*;
 
 
 //__________________ALU_FUNC_______________________
-    wire [2:0] _alu_func;
+    logic [2:0] _alu_func;
     always_comb begin
         if (shifts_d || alu2_d || alu3_d || alu3_ind_d) begin
             if (alu2_d || alu3_ind_d) _alu_func = alu_op_d0;
