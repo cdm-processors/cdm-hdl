@@ -1,16 +1,16 @@
 `timescale 1ns / 1ps
 
 module alu (
-    input logic [15:0] A  /*!p:l*/,
+    input logic [15:0] A, 
     input logic [15:0] B,
-    input logic Cin  /*!p:t,t:Cin*/,
+    input logic carry_in, 
 
-    output logic [15:0] S  /*!p:r*/,
+    output logic [15:0] R,
     output logic [ 3:0] CVZN,
 
-    input logic [2:0] op_type  /*!p:b,t:op,s:30*/,
-    input logic [2:0] func  /*!t:f*/,
-    input logic [2:0] shift_count_d  /*!t:shift*/
+    input logic [2:0] op_type,
+    input logic [2:0] func, 
+    input logic [2:0] shamt 
 );
   function automatic checkC(input [16:0] i);
     checkC = i[16];
@@ -28,22 +28,24 @@ module alu (
   logic N;
   assign CVZN[3:0] = {C, V, Z, N};
 
-  logic [16:0] wA = {1'd0, A};
-  logic [16:0] wB = {1'd0, B};
-  logic [16:0] wS;
+  logic [16:0] wA;
+  logic [16:0] wB;
+  assign wA =  {1'd0, A};
+  assign wB = {1'd0, B};
 
-  assign Z = (S == 16'd0);
-  assign N = S[15];
-  assign S = wS[15:0];
+  logic [16:0] wR;
+  assign Z = (R == 16'd0);
+  assign N = R[15];
+  assign R = wR[15:0];
 
 
-  logic [4:0] wShiftCount = 5'd1 + {2'b0, shift_count_d};
-
+  logic [4:0] w_shamt;
+  assign w_shamt = 5'd1 + {2'b0, shamt};
 
   always_comb begin
     case (op_type)
       default: begin
-        wS = 0;
+        wR = 0;
         C  = 0;
         V  = 0;
       end
@@ -52,69 +54,69 @@ module alu (
           0: begin  // AND
             C  = 0;
             V  = 0;
-            wS = wA & wB;
+            wR = wA & wB;
           end
           1: begin  // OR
             C  = 0;
             V  = 0;
-            wS = wA | wB;
+            wR = wA | wB;
           end
           2: begin  // XOR
             C  = 0;
             V  = 0;
-            wS = wA ^ wB;
+            wR = wA ^ wB;
           end
           3: begin  // BIC
             C  = 0;
             V  = 0;
-            wS = wA & (wB ^ 17'hffff);
+            wR = wA & (~wB);
           end
           4: begin  // ADD
-            wS = A + B;
-            C  = checkC(wS);
-            V  = checkV(S, A, B);
+            wR = A + B;
+            C  = checkC(wR);
+            V  = checkV(R, A, B);
           end
           5: begin  // ADC
-            wS = wA + wB + {16'd0, Cin};
-            C  = checkC(wS);
-            V  = checkV(S, A, B + {15'd0, Cin});  // TODO: maybe there's overflow in second arg
+            wR = wA + wB + {16'd0, carry_in};
+            C  = checkC(wR);
+            V  = checkV(R, A, B + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
           6: begin  // SUB
-            wS = wA + (wB ^ 17'hffff) + 1;
-            C  = checkC(wS);
-            V  = checkV(S, A, (~B) + 1);  // TODO: maybe there's overflow in second arg
+            wR = wA + (~wB) + 1;
+            C  = checkC(wR);
+            V  = checkV(R, A, (~B) + 1);  // TODO: maybe there's overflow in second arg
           end
-          7: begin  // SBC
-            wS = wA + (wB ^ 17'hffff) + {16'd0, Cin};
-            C  = checkC(wS);
-            V  = checkV(S, A, (~B) + {15'd0, Cin});  // TODO: maybe there's overflow in second arg
+          7: begin  // SUBC
+            wR = wA + (~wB) + {16'd0, carry_in};
+            C  = checkC(wR);
+            V  = checkV(R, A, (~B) + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
         endcase
       end
       3'b010: begin  // ALU_2
         case (func)
           default: begin
-            wS = 0;
+            wR = 0;
             C  = 0;
             V  = 0;
           end
           0: begin  // NEG
-            wS = (wA ^ 17'hffff) + 1;
-            C  = checkC(wS);
+            wR = (~wA) + 1;
+            C  = checkC(wR);
             V  = A == 16'h8000;
           end
           1: begin  // NOT
-            wS = wA ^ 17'hffff;
+            wR = (~wA);
             C  = 0;
             V  = 0;
           end
           2: begin  // SXT
-            wS = {1'd0, {8{wA[7]}}, wA[7:0]};
+            wR = {1'd0, {8{wA[7]}}, wA[7:0]};
             C  = 0;
             V  = 0;
           end
           3: begin  // SCL
-            wS = wA & 17'h00FF;
+            wR = wA & 17'h00FF;
             C  = 0;
             V  = 0;
           end
@@ -124,42 +126,42 @@ module alu (
         V = 0;
         case (func)
           default: begin
-            wS = 0;
+            wR = 0;
             C  = 0;
           end
           0: begin  // SHL
-            wS = wA << wShiftCount;
-            C  = wA[16-wShiftCount];
+            wR = wA << w_shamt;
+            C  = wA[16-w_shamt];
           end
           1: begin  // SHR
-            wS = wA >> wShiftCount;
-            C  = wA[wShiftCount-1];
+            wR = wA >> w_shamt;
+            C  = wA[w_shamt-1];
           end
           2: begin  // SHRA
-            wS = {1'b0, (A >>> wShiftCount) | ({16{A[15]}} << (16 - wShiftCount))};
-            C  = wA[wShiftCount-1];
+            wR = {1'b0, (A >>> w_shamt) | ({16{A[15]}} << (16 - w_shamt))};
+            C  = wA[w_shamt-1];
           end
           3: begin  // ROL
-            wS = {1'b0, (A << wShiftCount) | {A >> (16 - wShiftCount)}};
-            C  = wA[16-wShiftCount];
+            wR = {1'b0, (A << w_shamt) | {A >> (16 - w_shamt)}};
+            C  = wA[16-w_shamt];
           end
           4: begin  // ROR
-            wS = {1'b0, (A >> wShiftCount) | {A << (16 - wShiftCount)}};
-            C  = wA[wShiftCount-1];
+            wR = {1'b0, (A >> w_shamt) | {A << (16 - w_shamt)}};
+            C  = wA[w_shamt-1];
           end
           5: begin  // RCL
-            wS = {
+            wR = {
               1'b0,
-              (A << wShiftCount) | {{15'd0, Cin} << (wShiftCount - 1)} |  {A >> (16 - wShiftCount + 1)}
+              (A << w_shamt) | {{15'd0, carry_in} << (w_shamt - 1)} |  {A >> (16 - w_shamt + 1)}
             };
-            C = wA[16-wShiftCount];
+            C = wA[16-w_shamt];
           end
           6: begin  // RCR
-            wS = {
+            wR = {
               1'b0,
-              (A >> wShiftCount) | {{15'd0, Cin} << (16 - wShiftCount)} | {A << (16 - wShiftCount + 1)}
+              (A >> w_shamt) | {{15'd0, carry_in} << (16 - w_shamt)} | {A << (16 - w_shamt + 1)}
             };
-            C = wA[wShiftCount-1];
+            C = wA[w_shamt-1];
           end
         endcase
       end
@@ -167,4 +169,4 @@ module alu (
   end
 
 
-endmodule
+endmodule // alu
