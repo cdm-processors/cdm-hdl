@@ -36,34 +36,34 @@ package core_base_pkg;
     } ucode_sel_e;
 
     typedef struct packed {
-        logic cut;               // [27] конец инструкции, сброс фазы
-        logic word;              // [26] 16-битный доступ к памяти
-        logic sp_latch;          // [25] D-шина → SP
+        logic cut;               // [27] end of instruction, phase reset
+        logic word;              // [26] 16-bit memory access
+        logic sp_latch;          // [25] D-bus → SP
         logic sp_inc;            // [24] SP += 2
         logic sp_dec;            // [23] SP -= 2
-        logic sp_asrtd;          // [22] SP → D-шина
-        logic sp_asrt0;          // [21] SP → шина 0
-        logic sign_extend;       // [20] знаковое расширение
-        logic read;              // [19] чтение памяти (иначе запись)
-        logic r_latch;           // [18] D-шина → регистр
-        logic r_asrtd;           // [17] регистр → D-шина
-        logic r_asrt1;           // [16] регистр → шина 1
-        logic r_asrt0;           // [15] регистр → шина 0
-        logic ps_latch_word;     // [14] полное слово → PS
-        logic ps_latch_flags;    // [13] только флаги → PS
-        logic ps_asrtd;          // [12] PS → D-шина
-        logic pc_latch;          // [11] D-шина → PC
+        logic sp_asrtd;          // [22] SP → D-bus
+        logic sp_asrt0;          // [21] SP → bus 0
+        logic sign_extend;       // [20] sign extension
+        logic read;              // [19] memory read (otherwise write)
+        logic r_latch;           // [18] D-bus → register
+        logic r_asrtd;           // [17] register → D-bus
+        logic r_asrt1;           // [16] register → bus 1
+        logic r_asrt0;           // [15] register → bus 0
+        logic ps_latch_word;     // [14] full word → PS
+        logic ps_latch_flags;    // [13] flags only → PS
+        logic ps_asrtd;          // [12] PS → D-bus
+        logic pc_latch;          // [11] D-bus → PC
         logic pc_inc;            // [10] PC += 2
-        logic pc_asrtd;          // [9]  PC → D-шина
-        logic pc_asrt0;          // [8]  PC → шина 0
-        logic mem;               // [7]  включить обращение к памяти
-        logic imm_shift;         // [6]  сдвинуть immediate на 1
-        logic imm_extend_neg;    // [5]  знаковое расширение immediate
-        logic imm_asrtd;         // [4]  immediate → D-шина
-        logic imm_asrt1;         // [3]  immediate → шина 1
-        logic fp_asrt0;          // [2]  FP (r7) → шина 0
-        logic data;              // [1]  сигнал data для памяти
-        logic alu_asrtd;         // [0]  результат ALU → D-шина
+        logic pc_asrtd;          // [9]  PC → D-bus
+        logic pc_asrt0;          // [8]  PC → bus 0
+        logic mem;               // [7]  enable memory access
+        logic imm_shift;         // [6]  shift immediate left by 1
+        logic imm_extend_neg;    // [5]  sign-extend immediate
+        logic imm_asrtd;         // [4]  immediate → D-bus
+        logic imm_asrt1;         // [3]  immediate → bus 1
+        logic fp_asrt0;          // [2]  FP (r7) → bus 0
+        logic data;              // [1]  memory data signal
+        logic alu_asrtd;         // [0]  ALU result → D-bus
     } ucode_word_t;
 
 // ====================== ALU =========================
