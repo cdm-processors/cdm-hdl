@@ -21,7 +21,7 @@ endif
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
 #_____________TESTS______________
-all_tests: alu_tests decoder_tests
+all_tests: alu_tests decoder_tests gen_ucode_tests
 
 alu_tests:
 	@echo "-----------------ALU_TESTS---------------------"
@@ -39,4 +39,12 @@ decoder_tests:
 		TOPLEVEL=decoder \
 		VERILOG_SOURCES="$(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv"
 
-.PHONY: all_tests alu_tests decoder_tests
+gen_ucode_tests:
+	@echo "-----------------GEN_UCODE_TESTS-----------------"
+	$(MAKE) -C $(TEST_DIR) \
+		SIM_BUILD=$(TEST_DIR)sim_build/gen_ucode \
+		COCOTB_TEST_MODULES=$(TESTS_DIR).gen_ucode_tests \
+		TOPLEVEL=gen_ucode \
+		VERILOG_SOURCES=$(MODULES_DIR)/gen_ucode.sv
+
+.PHONY: all_tests alu_tests decoder_tests gen_ucode_tests
