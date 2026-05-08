@@ -1,23 +1,25 @@
-import os.path
 import logging
+from pathlib import Path
 
-CUR_DIR = os.path.dirname(os.path.realpath(__file__))
-LOG_DIR = os.path.join(CUR_DIR, "results")
+CUR_DIR = Path(__file__).resolve().parent
+LOG_DIR = CUR_DIR / "results"
 LOGGER_NAME = "output"
 
-if not os.path.exists(LOG_DIR):
-    os.mkdir(LOG_DIR)
+LOG_DIR.mkdir(exist_ok=True)
+
 
 def get_logger(name: str = LOGGER_NAME, level: int = logging.INFO) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
+    logger.propagate = False
 
-    fh = logging.FileHandler(
-        os.path.join(LOG_DIR, f"{name}.log"),
-        mode="w"
-    )
+    if logger.handlers:
+        return logger
+
+    fh = logging.FileHandler(LOG_DIR / f"{name}.log", mode="w")
     fmt = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
     fh.setFormatter(fmt)
+
     logger.addHandler(fh)
     logger.info("_____________START TESTS_____________")
 
