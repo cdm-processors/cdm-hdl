@@ -37,10 +37,12 @@ module imm_decoder import core_base_pkg::*; (
 
     always_comb begin
         if (is_int) begin
-            if (phase != 3'd2) begin  // phase[0] == 1 | phase = 3'd3
+            if (phase == 3'd3) begin          // phase[0] == 1
                 shifted_imm = (extended_imm << 2) + 16'd2;
-            end else begin            // phase[0] == 0 | phase = 3'd2
+            end else if (phase == 3'd2) begin // phase[0] == 0
                 shifted_imm = extended_imm << 2;
+            end else begin
+                shifted_imm = '0;
             end
         end else begin
             if (imm_shift) begin 
