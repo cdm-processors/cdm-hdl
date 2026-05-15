@@ -45,32 +45,22 @@ module alu import core_base_pkg::*; (
   assign w_shamt = 5'd1 + {2'b0, shamt};
 
   always_comb begin
+    wR = '0;
+    C  = 0;
+    V  = 0;
     case (op_type)
-      default: begin
-        wR = 0;
-        C  = 0;
-        V  = 0;
-      end
       ALU3: begin
         case (func)
           ALU3_AND: begin
-            C  = 0;
-            V  = 0;
             wR = wA & wB;
           end
           ALU3_OR: begin
-            C  = 0;
-            V  = 0;
             wR = wA | wB;
           end
           ALU3_XOR: begin
-            C  = 0;
-            V  = 0;
             wR = wA ^ wB;
           end
           ALU3_BIC: begin
-            C  = 0;
-            V  = 0;
             wR = wA & (~wB);
           end
           ALU3_ADD: begin
@@ -97,11 +87,6 @@ module alu import core_base_pkg::*; (
       end
       ALU2: begin
         case (func)
-          default: begin
-            wR = 0;
-            C  = 0;
-            V  = 0;
-          end
           ALU2_NEG: begin
             wR = (~wA) + 1;
             C  = checkC(wR);
@@ -109,28 +94,17 @@ module alu import core_base_pkg::*; (
           end
           ALU2_NOT: begin
             wR = (~wA);
-            C  = 0;
-            V  = 0;
           end
           ALU2_SXT: begin
             wR = {1'd0, {8{wA[7]}}, wA[7:0]};
-            C  = 0;
-            V  = 0;
           end
           ALU2_SCL: begin
             wR = wA & 17'h00FF;
-            C  = 0;
-            V  = 0;
           end
         endcase
       end
       SHIFT: begin
-        V = 0;
         case (func)
-          default: begin
-            wR = 0;
-            C  = 0;
-          end
           SHIFT_SHL: begin
             wR = wA << w_shamt;
             C  = wA[16-w_shamt];
