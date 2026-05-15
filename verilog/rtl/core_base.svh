@@ -68,6 +68,12 @@ package core_base_pkg;
 
 // ====================== ALU =========================
     typedef enum logic [2:0] {
+        ALU3  = 3'b001,
+        ALU2  = 3'b010,
+        SHIFT  = 3'b100
+    } alu_op_type_e;
+
+    typedef enum logic [2:0] {
         ALU3_AND  = 3'd0,
         ALU3_OR   = 3'd1,
         ALU3_XOR  = 3'd2,

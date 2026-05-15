@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 
-module alu (
+`include "core_base.svh"
+
+module alu import core_base_pkg::*; (
     input logic [15:0] A, 
     input logic [15:0] B,
     input logic carry_in, 
@@ -49,114 +51,114 @@ module alu (
         C  = 0;
         V  = 0;
       end
-      3'b001: begin  // ALU_3
+      ALU3: begin
         case (func)
-          0: begin  // AND
+          ALU3_AND: begin
             C  = 0;
             V  = 0;
             wR = wA & wB;
           end
-          1: begin  // OR
+          ALU3_OR: begin
             C  = 0;
             V  = 0;
             wR = wA | wB;
           end
-          2: begin  // XOR
+          ALU3_XOR: begin
             C  = 0;
             V  = 0;
             wR = wA ^ wB;
           end
-          3: begin  // BIC
+          ALU3_BIC: begin
             C  = 0;
             V  = 0;
             wR = wA & (~wB);
           end
-          4: begin  // ADD
+          ALU3_ADD: begin
             wR = A + B;
             C  = checkC(wR);
             V  = checkV(R, A, B);
           end
-          5: begin  // ADC
+          ALU3_ADC: begin
             wR = wA + wB + {16'd0, carry_in};
             C  = checkC(wR);
             V  = checkV(R, A, B + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
-          6: begin  // SUB
+          ALU3_SUB: begin  // SUB
             wR = wA + (~wB) + 1;
             C  = checkC(wR);
             V  = checkV(R, A, (~B) + 1);  // TODO: maybe there's overflow in second arg
           end
-          7: begin  // SUBC
+          ALU3_SUBC: begin  // SUBC
             wR = wA + (~wB) + {16'd0, carry_in};
             C  = checkC(wR);
             V  = checkV(R, A, (~B) + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
         endcase
       end
-      3'b010: begin  // ALU_2
+      ALU2: begin
         case (func)
           default: begin
             wR = 0;
             C  = 0;
             V  = 0;
           end
-          0: begin  // NEG
+          ALU2_NEG: begin
             wR = (~wA) + 1;
             C  = checkC(wR);
             V  = A == 16'h8000;
           end
-          1: begin  // NOT
+          ALU2_NOT: begin
             wR = (~wA);
             C  = 0;
             V  = 0;
           end
-          2: begin  // SXT
+          ALU2_SXT: begin
             wR = {1'd0, {8{wA[7]}}, wA[7:0]};
             C  = 0;
             V  = 0;
           end
-          3: begin  // SCL
+          ALU2_SCL: begin
             wR = wA & 17'h00FF;
             C  = 0;
             V  = 0;
           end
         endcase
       end
-      3'b100: begin
+      SHIFT: begin
         V = 0;
         case (func)
           default: begin
             wR = 0;
             C  = 0;
           end
-          0: begin  // SHL
+          SHIFT_SHL: begin
             wR = wA << w_shamt;
             C  = wA[16-w_shamt];
           end
-          1: begin  // SHR
+          SHIFT_SHR: begin
             wR = wA >> w_shamt;
             C  = wA[w_shamt-1];
           end
-          2: begin  // SHRA
+          SHIFT_SHRA: begin
             wR = {1'b0, (A >>> w_shamt) | ({16{A[15]}} << (16 - w_shamt))};
             C  = wA[w_shamt-1];
           end
-          3: begin  // ROL
+          SHIFT_ROL: begin
             wR = {1'b0, (A << w_shamt) | {A >> (16 - w_shamt)}};
             C  = wA[16-w_shamt];
           end
-          4: begin  // ROR
+          SHIFT_ROR: begin
             wR = {1'b0, (A >> w_shamt) | {A << (16 - w_shamt)}};
             C  = wA[w_shamt-1];
           end
-          5: begin  // RCL
+          SHIFT_RCL: begin
             wR = {
               1'b0,
               (A << w_shamt) | {{15'd0, carry_in} << (w_shamt - 1)} |  {A >> (16 - w_shamt + 1)}
             };
             C = wA[16-w_shamt];
           end
-          6: begin  // RCR
+          SHIFT_RCR: begin
             wR = {
               1'b0,
               (A >> w_shamt) | {{15'd0, carry_in} << (16 - w_shamt)} | {A << (16 - w_shamt + 1)}
