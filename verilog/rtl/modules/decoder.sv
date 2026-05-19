@@ -137,17 +137,6 @@ module decoder import core_base_pkg::*;
         else                         direct_op_type = 4'h8;
     end
 
-    typedef enum logic [2:0] {
-        UCODE_OP0    = 3'h0,
-        UCODE_OP1    = 3'h1,
-        UCODE_OP2    = 3'h2,
-        UCODE_MEM2   = 3'h3,
-        UCODE_IMM6   = 3'h4,
-        UCODE_IMM9   = 3'h5,
-        UCODE_MEM3   = 3'h6,
-        UCODE_DIRECT = 3'h7
-    } ucode_sel_e; // make extern to global
-
     always_comb begin
         if (direct_op_type != 4'h8) ucode_addr = {phase, UCODE_DIRECT,  direct_op_type};
         else if (mem3_d)            ucode_addr = {phase, UCODE_MEM3,    op_type_d3};
