@@ -6,13 +6,13 @@ module pc_file #(
     input  logic            i_clk,
     input  logic            i_rst,
 
-    // Управление
+    // Control
     input  logic            i_hold,
     input  logic            i_inc,
     input  logic            i_load,
     input  logic [XLEN-1:0] i_load_data,
 
-    // Состояние
+    // State
     output logic [XLEN-1:0] o_pc,
     output logic [XLEN-1:0] o_pc_next_inc,
     output logic            o_unaligned

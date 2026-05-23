@@ -5,12 +5,15 @@ module rams_tdp_rf_rf #(
 )(
     input  logic              clka,
     input  logic              clkb,
+
     input  logic              ena,
     input  logic              enb,
     input  logic              wea,
     input  logic              web,
+
     input  logic [ADDR_W-1:0] addra,
     input  logic [ADDR_W-1:0] addrb,
+    
     input  logic [WIDTH-1:0]  dia,
     input  logic [WIDTH-1:0]  dib,
     output logic [WIDTH-1:0]  doa,

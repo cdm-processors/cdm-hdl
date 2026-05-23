@@ -6,6 +6,7 @@ package core_base_pkg;
     localparam logic [XLEN-1:0] RESET_PC = 16'b0;
     localparam logic [XLEN-1:0] PC_STEP  = 16'd2;
 
+
 // ====================== TYPES =====================
     typedef logic flag_t;
 
@@ -15,6 +16,12 @@ package core_base_pkg;
     localparam int REG_ADDR_W = ($clog2(REG_CNT));
     typedef logic[REG_ADDR_W-1:0] reg_addr_t;
     typedef logic[XLEN-1:0] reg_t;
+
+
+// ===================== REG_FILE ======================
+    localparam int MEM_ADDR_WIDTH = 12;
+    
+
 
 // ====================== UCODE ========================
     localparam int PHASE_W = 3;
@@ -65,6 +72,7 @@ package core_base_pkg;
         logic data;              // [1]  memory data signal
         logic alu_asrtd;         // [0]  ALU result → D-bus
     } ucode_word_t;
+
 
 // ====================== ALU =========================
     typedef enum logic [2:0] {
