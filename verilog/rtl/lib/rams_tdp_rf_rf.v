@@ -1,7 +1,8 @@
 module rams_tdp_rf_rf #(
     parameter int WIDTH  = 16,
     parameter int ADDR_W = 10,
-    parameter int DEPTH  = 1 << ADDR_W
+    
+    localparam int DEPTH = 1 << ADDR_W
 )(
     input  logic              clka,
     input  logic              clkb,

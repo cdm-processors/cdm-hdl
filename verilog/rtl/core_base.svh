@@ -13,14 +13,13 @@ package core_base_pkg;
 
 // ===================== REG_FILE ======================
     localparam int REG_CNT = 8;
-    localparam int REG_ADDR_W = ($clog2(REG_CNT));
+    localparam int REG_ADDR_W = $clog2(REG_CNT);
     typedef logic[REG_ADDR_W-1:0] reg_addr_t;
     typedef logic[XLEN-1:0] reg_t;
 
 
-// ===================== REG_FILE ======================
+// ===================== MEMORY ======================
     localparam int MEM_ADDR_WIDTH = 12;
-    
 
 
 // ====================== UCODE ========================
@@ -78,7 +77,7 @@ package core_base_pkg;
     typedef enum logic [2:0] {
         ALU3  = 3'b001,
         ALU2  = 3'b010,
-        SHIFT  = 3'b100
+        SHIFT = 3'b100
     } alu_op_type_e;
 
     typedef enum logic [2:0] {
