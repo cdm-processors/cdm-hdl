@@ -99,7 +99,7 @@ module decoder import core_base_pkg::*;
 
 
     assign imm6_flag = imm6_d;
-    assign is_int = imm9_d && op_type_d3[3:1] == 0;
+    assign is_int = imm9_d && (op_type_d3[3:1] == 0);
     assign is_branch = br_abs_d || br_rel_n_d || br_rel_p_d;
     assign carry_flag =    (alu3_d   && (_alu_func == 3'd5 || _alu_func == 3'd7))
                         || (shifts_d && (_alu_func == 3'd5 || _alu_func == 3'd6));

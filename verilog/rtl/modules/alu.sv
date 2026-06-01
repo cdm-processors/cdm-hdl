@@ -7,12 +7,12 @@ module alu import core_base_pkg::*; (
     input logic [15:0] B,
     input logic carry_in, 
 
-    output logic [15:0] R,
-    output logic [ 3:0] CVZN,
-
     input logic [2:0] op_type,
     input logic [2:0] func, 
-    input logic [2:0] shamt 
+    input logic [2:0] shamt,
+
+    output logic [15:0] R,
+    output logic [ 3:0] CVZN
 );
   function automatic checkC(input [16:0] i);
     checkC = i[16];
@@ -22,7 +22,6 @@ module alu import core_base_pkg::*; (
     checkV = ((rd[15] != 0) && (rs0[15] == 0) && (rs1[15] == 0)) ||
              ((rd[15] == 0) && (rs0[15] != 0) && (rs1[15] != 0)) ;
   endfunction
-
 
   logic C;
   logic V;
@@ -39,7 +38,6 @@ module alu import core_base_pkg::*; (
   assign Z = (R == 16'd0);
   assign N = R[15];
   assign R = wR[15:0];
-
 
   logic [4:0] w_shamt;
   assign w_shamt = 5'd1 + {2'b0, shamt};

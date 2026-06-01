@@ -5,7 +5,9 @@
 module imm_decoder import core_base_pkg::*; (
     input logic [5:0] imm6,
     input logic [8:0] imm9,
+
     input u_phase_t phase,
+    
     input flag_t is_int,
     input flag_t imm6_flag,
     input flag_t imm_extend_neg,
