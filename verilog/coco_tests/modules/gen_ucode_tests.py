@@ -1,10 +1,6 @@
 import cocotb
 from cocotb.triggers import Timer
 
-from .config import get_logger
-
-logger = get_logger("gen_ucode")
-
 
 def uaddr(phase, rule):
     assert 0 <= phase < 8

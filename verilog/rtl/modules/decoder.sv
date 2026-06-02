@@ -24,7 +24,8 @@ module decoder import core_base_pkg::*;
     output flag_t           imm6_flag,
     output flag_t           carry_flag,
     output flag_t           is_int,
-    output flag_t           is_branch
+    output flag_t           is_branch,
+    output flag_t           is_jsr
 );
     wire [1:0] postf     = instr[12:11]; // postfix of encoding
     wire [2:0] inst_type = instr[15:13];
@@ -99,8 +100,9 @@ module decoder import core_base_pkg::*;
 
 
     assign imm6_flag = imm6_d;
-    assign is_int = imm9_d && op_type_d3[3:1] == 0;
+    assign is_int = imm9_d && (op_type_d3[3:1] == 0);
     assign is_branch = br_abs_d || br_rel_n_d || br_rel_p_d;
+    assign is_jsr = (instr == 16'h0008);
     assign carry_flag =    (alu3_d   && (_alu_func == 3'd5 || _alu_func == 3'd7))
                         || (shifts_d && (_alu_func == 3'd5 || _alu_func == 3'd6));
 
