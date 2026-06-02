@@ -9,6 +9,7 @@ package core_base_pkg;
 
 // ====================== TYPES =====================
     typedef logic flag_t;
+    typedef logic[XLEN-1:0] data_t;
 
 
 // ===================== REG_FILE ======================

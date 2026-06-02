@@ -17,7 +17,7 @@ module reg_file_m import core_base_pkg::*;
     input reg_t rd
 );
 
-  logic [XLEN-1:0] regFile[0:REG_CNT-1];
+  reg_t regFile[0:REG_CNT-1];
 
   always_comb begin
     rs1 = regFile[rsi1];

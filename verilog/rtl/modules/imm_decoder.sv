@@ -13,10 +13,10 @@ module imm_decoder import core_base_pkg::*; (
     input flag_t imm_extend_neg,
     input flag_t imm_shift,
 
-    output reg_t imm
+    output data_t imm
 );
 
-    reg_t extended_imm;
+    data_t extended_imm;
 
     always_comb begin
         if (imm6_flag) begin
@@ -34,7 +34,7 @@ module imm_decoder import core_base_pkg::*; (
         end
     end
 
-    reg_t shifted_imm;
+    data_t shifted_imm;
     assign imm = shifted_imm;
 
     always_comb begin
