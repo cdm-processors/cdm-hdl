@@ -4,7 +4,9 @@
 module memory
   import core_base_pkg::*;
 (
-    input  reg_t  next_pc,
+    input logic clk,
+
+    input  data_t instr_addr,
     input  flag_t instr_en,
     output data_t instr,
 
@@ -15,34 +17,21 @@ module memory
     output data_t data_out
 );
 
-  //individual clk for load/store data in mem.
-  logic rev_clk;
-  assign rev_clk = ~clk;
+  data_t ram[0:(1 << MEM_ADDR_WIDTH)-1];
 
-  rams_tdp_rf_rf #(
-      .WIDTH (XLEN),
-      .ADDR_W(MEM_ADDR_WIDTH)
-  ) u_rams_tdp_rf_rf (
+  logic [MEM_ADDR_WIDTH-1:0] instr_word_addr;
+  logic [MEM_ADDR_WIDTH-1:0] data_word_addr;
 
-      // _____INSTRUCTIONS_____
-      .clka(clk),
+  assign instr_word_addr = instr_addr[MEM_ADDR_WIDTH:1];
+  assign data_word_addr  = data_addr [MEM_ADDR_WIDTH:1];
 
-      .ena(instr_en),
-      .wea(0),
+  assign instr    = instr_en ? ram[instr_word_addr] : '0;
+  assign data_out = data_en ? ram[data_word_addr] : '0;
 
-      .addra(next_pc[MEM_ADDR_WIDTH-1:0]),
-      .dia  (0),
-      .doa  (instr),
-
-      // ______DATA______
-      .clkb(rev_clk),
-
-      .enb(data_en),
-      .web(data_wr),
-
-      .addrb(data_addr),
-      .dib  (data_in),
-      .dob  (data_out)
-  );
+  always_ff @(posedge clk) begin
+    if (data_en && data_wr) begin
+      ram[data_word_addr] <= data_in;
+    end
+  end
 
 endmodule

@@ -21,6 +21,8 @@ module pc_file #(
     output logic            o_unaligned
 );
     always_comb begin
+        o_pc_next = o_pc;
+
         if (i_rst) begin
             o_pc_next = RESET_PC;
         end else if (!i_hold) begin
@@ -29,8 +31,6 @@ module pc_file #(
             end else if (i_inc) begin
                 o_pc_next = o_pc + STEP;
             end
-        end else begin
-            o_pc_next = o_pc;
         end
     end
 

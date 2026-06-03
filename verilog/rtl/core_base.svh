@@ -1,3 +1,6 @@
+`ifndef CORE_BASE_SVH
+`define CORE_BASE_SVH
+
 package core_base_pkg;
 
 // ===================== CONSTANTS =====================
@@ -110,3 +113,5 @@ package core_base_pkg;
     } shift_func_e;
 
 endpackage
+
+`endif
