@@ -23,7 +23,7 @@ module memory
   logic [MEM_ADDR_WIDTH-1:0] data_word_addr;
 
   assign instr_word_addr = instr_addr[MEM_ADDR_WIDTH:1];
-  assign data_word_addr  = data_addr [MEM_ADDR_WIDTH:1];
+  assign data_word_addr  = data_addr[MEM_ADDR_WIDTH:1];
 
   assign instr    = instr_en ? ram[instr_word_addr] : '0;
   assign data_out = data_en ? ram[data_word_addr] : '0;

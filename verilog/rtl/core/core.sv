@@ -8,7 +8,9 @@ module core
 );
 
   logic [XLEN-1:0] instr;
-  logic [XLEN-1:0] next_pc;
+
+  flag_t data_en;
+  flag_t data_wr;
 
   ucode_word_t uword;
 
@@ -32,16 +34,6 @@ module core
   data_t data_bus;
   flag_t rf_we;
 
-  flag_t pc_hold;
-  flag_t pc_inc;
-  flag_t pc_load;
-  flag_t pc_unaligned;
-
-  assign pc_hold = 1'b0;
-  assign pc_inc = uword.pc_inc;
-  assign pc_load = uword.pc_latch;
-  assign pc_load_data = data_bus;
-
   logic [2:0] alu_func;
   logic [2:0] alu_op_type;
   logic [2:0] shamt;
@@ -57,7 +49,23 @@ module core
 
   logic [3:0] flags;
 
-  assign instr = '0;
+  data_t fetched_instr;
+  data_t instr_reg;
+  data_t instr_pc;
+  flag_t fetch_state;
+  ucode_word_t decoded_uword;
+
+  assign instr = instr_reg;
+
+  flag_t pc_hold;
+  flag_t pc_inc;
+  flag_t pc_load;
+  flag_t pc_unaligned;
+
+  assign pc_hold = 1'b0;
+  assign pc_inc = fetch_state || uword.pc_inc;
+  assign pc_load = uword.pc_latch;
+  assign pc_load_data = data_bus;
 
   data_t sp;
   data_t ps;
@@ -65,7 +73,8 @@ module core
   data_t alu_bus1;
   data_t alu_bus2;
 
-  assign mem_data = '0;
+  assign data_en = uword.mem;
+  assign data_wr = uword.mem && !uword.read;
 
   assign flags = ps[3:0];
 
@@ -102,8 +111,10 @@ module core
 
   gen_ucode u_gen_ucode (
     .addr(ucode_addr),
-    .S(uword)
+    .S(decoded_uword)
   );
+
+  assign uword = fetch_state ? '0 : decoded_uword;
 
   assign rf_we = uword.r_latch;
 
@@ -128,7 +139,7 @@ module core
       .ucode(uword),
       .phase(phase),
 
-      .pc(pc),
+      .pc(instr_pc),
       .ps(ps),
       .sp(sp),
 
@@ -186,19 +197,39 @@ module core
 
   // ===================== MEMORY ======================
   //instance of memory
+  memory u_memory (
+      .clk(clk),
 
+      .instr_addr(pc),
+      .instr_en(1'b1),
+      .instr(fetched_instr),
+
+      .data_en(data_en),
+      .data_wr(data_wr),
+      .data_addr(alu_result),
+      .data_in(data_bus),
+      .data_out(mem_data)
+  );
 
   
   always_ff @(posedge clk) begin
     if (rst) begin
       phase <= '0;
+      fetch_state <= 1'b1;
+      instr_reg <= '0;
+      instr_pc <= '0;
+    end else if (fetch_state) begin
+      instr_reg <= fetched_instr;
+      instr_pc <= pc;
+      phase <= '0;
+      fetch_state <= 1'b0;
     end else if (uword.cut) begin
       phase <= '0;
+      fetch_state <= 1'b1;
     end else begin
       phase <= phase + 1'b1;
     end
   end
-
 
   always_ff @(posedge clk) begin
     if (rst) begin
