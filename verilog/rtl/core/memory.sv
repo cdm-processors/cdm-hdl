@@ -3,6 +3,9 @@
 
 module memory
   import core_base_pkg::*;
+#(
+    parameter INIT_FILE = ""
+)
 (
     input logic clk,
 
@@ -18,6 +21,12 @@ module memory
 );
 
   data_t ram[0:(1 << MEM_ADDR_WIDTH)-1];
+
+  initial begin
+    if (INIT_FILE != "") begin
+      $readmemh(INIT_FILE, ram);
+    end
+  end
 
   logic [MEM_ADDR_WIDTH-1:0] instr_word_addr;
   logic [MEM_ADDR_WIDTH-1:0] data_word_addr;

@@ -5,6 +5,7 @@
 module reg_file_m import core_base_pkg::*;
 (
     input logic clk,
+    input logic rst,
     input logic we,
 
     input reg_addr_t rsi0,
@@ -21,6 +22,7 @@ module reg_file_m import core_base_pkg::*;
 );
 
   reg_t regFile[0:REG_CNT-1];
+  integer i;
 
   always_comb begin
     rs0 = regFile[rsi0];
@@ -30,7 +32,11 @@ module reg_file_m import core_base_pkg::*;
   end
 
   always_ff @(posedge clk) begin : save_rd
-    if (we) begin
+    if (rst) begin
+      for (i = 0; i < REG_CNT; i = i + 1) begin
+        regFile[i] <= '0;
+      end
+    end else if (we) begin
       regFile[rdi] <= rd_in;
     end
   end

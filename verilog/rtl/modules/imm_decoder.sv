@@ -9,6 +9,7 @@ module imm_decoder import core_base_pkg::*; (
     input u_phase_t phase,
     
     input flag_t is_int,
+    input flag_t is_reset,
     input flag_t imm6_flag,
     input flag_t imm_extend_neg,
     input flag_t imm_shift,
@@ -38,20 +39,22 @@ module imm_decoder import core_base_pkg::*; (
     assign imm = shifted_imm;
 
     always_comb begin
+        shifted_imm = '0;
         if (is_int) begin
-            if (phase == 3'd3) begin          // phase[0] == 1
-                shifted_imm = (extended_imm << 2) + 16'd2;
-            end else if (phase == 3'd2) begin // phase[0] == 0
+            if (phase == 3'd2)
                 shifted_imm = extended_imm << 2;
-            end else begin
-                shifted_imm = '0;
-            end
+            else if (phase == 3'd3)
+                shifted_imm = (extended_imm << 2) + 16'd2;
+        end else if (is_reset) begin
+            if (phase == 3'd0)
+                shifted_imm = extended_imm << 2;
+            else if (phase == 3'd1)
+                shifted_imm = (extended_imm << 2) + 16'd2;
         end else begin
-            if (imm_shift) begin 
+            if (imm_shift)
                 shifted_imm = extended_imm << 1;
-            end else begin
+            else
                 shifted_imm = extended_imm;
-            end
         end
     end
 

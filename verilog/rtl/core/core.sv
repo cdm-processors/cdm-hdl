@@ -2,10 +2,14 @@
 
 module core
   import core_base_pkg::*;
+#(
+    parameter MEM_INIT_FILE = ""
+)
 (
     input logic clk,
     input logic rst,
     input flag_t irq,
+    input logic [5:0] irq_vector,
     output flag_t int_en,
     output logic [1:0] status
 );
@@ -53,6 +57,7 @@ module core
   flag_t is_wait;
   flag_t is_ei;
   flag_t is_di;
+  flag_t is_reset;
 
   flag_t halted;
   flag_t waiting;
@@ -73,6 +78,11 @@ module core
   data_t instr_pc;
   flag_t fetch_state;
   ucode_word_t decoded_uword;
+  flag_t exc_pending;
+  flag_t exc_entry;
+  flag_t startup;
+  logic [5:0] exc_vector;
+  data_t exc_fault_pc;
 
   assign instr = instr_reg;
 
@@ -80,11 +90,7 @@ module core
   flag_t pc_inc;
   flag_t pc_load;
   flag_t pc_unaligned;
-
-  assign pc_hold = 1'b0;
-  assign pc_inc = !core_stopped && (fetch_state || uword.pc_inc);
-  assign pc_load = uword.pc_latch;
-  assign pc_load_data = data_bus;
+  flag_t fetch_uses_memory;
 
   data_t sp;
   data_t ps;
@@ -99,14 +105,49 @@ module core
   assign int_en = ps[15];
 
   flag_t interrupt_pending;
+  flag_t taking_external_irq;
+  flag_t exc_trig_invalid;
+  flag_t exc_trig_pc;
+  flag_t exc_trig_sp;
+  flag_t has_internal_exc;
+  logic [5:0] next_exc_vector;
 
   assign interrupt_pending = irq && int_en;
+  assign taking_external_irq = fetch_state && !core_stopped
+                            && !startup && !exc_pending
+                            && interrupt_pending;
+  assign exc_trig_invalid = !fetch_state && !core_stopped && (decoded_uword == '0);
+  assign exc_trig_pc = !fetch_state && !core_stopped && uword.pc_latch && data_bus[0];
+  assign exc_trig_sp = !fetch_state && !core_stopped && uword.sp_latch && data_bus[0];
+  assign has_internal_exc = exc_trig_invalid || exc_trig_pc || exc_trig_sp;
+
+  assign pc_hold = 1'b0;
+  assign fetch_uses_memory = fetch_state && !startup
+                          && !exc_pending && !taking_external_irq;
+  assign pc_inc = !core_stopped && (fetch_uses_memory || uword.pc_inc);
+  assign pc_load = uword.pc_latch && !exc_trig_pc;
+  assign pc_load_data = data_bus;
 
   data_t alu_result;
   logic [3:0] alu_flags;
   flag_t alu_carry_in;
 
   assign alu_carry_in = carry_flag ? flags[3] : 1'b0;
+
+  localparam data_t VIRTUAL_RESET_INSTR = 16'h8200;
+  localparam data_t VIRTUAL_INT_BASE = 16'h8000;
+
+  always_comb begin
+    if (exc_trig_invalid) begin
+      next_exc_vector = 6'd3;
+    end else if (exc_trig_pc) begin
+      next_exc_vector = 6'd2;
+    end else if (exc_trig_sp) begin
+      next_exc_vector = 6'd1;
+    end else begin
+      next_exc_vector = 6'd0;
+    end
+  end
 
   decoder u_decoder (
     .instr(instr),
@@ -135,7 +176,8 @@ module core
     .is_halt(is_halt),
     .is_wait(is_wait),
     .is_ei(is_ei),
-    .is_di(is_di)
+    .is_di(is_di),
+    .is_reset(is_reset)
   );
 
   gen_ucode u_gen_ucode (
@@ -149,6 +191,7 @@ module core
 
   reg_file_m u_reg_file (
       .clk(clk),
+      .rst(rst),
       .we(rf_we),
 
       .rsi0(rsi0),
@@ -178,6 +221,7 @@ module core
       .is_int(is_int),
       .is_branch(is_branch),
       .is_jsr(is_jsr),
+      .is_reset(is_reset),
 
       .rs0(rs0),
       .rs1(rs1),
@@ -187,6 +231,7 @@ module core
       .mem_data(mem_data),
 
       .alu_result(alu_result),
+      .exc_entry(exc_entry),
 
       .alu_bus1(alu_bus1),
       .alu_bus2(alu_bus2),
@@ -226,7 +271,9 @@ module core
 
   // ===================== MEMORY ======================
   //instance of memory
-  memory u_memory (
+  memory #(
+    .INIT_FILE(MEM_INIT_FILE)
+) u_memory (
       .clk(clk),
 
       .instr_addr(pc),
@@ -247,18 +294,48 @@ module core
       fetch_state <= 1'b1;
       instr_reg <= '0;
       instr_pc <= '0;
+      startup <= 1'b1;
+      exc_pending <= 1'b0;
+      exc_entry <= 1'b0;
+      exc_vector <= '0;
+      exc_fault_pc <= '0;
+    end else if (has_internal_exc) begin
+      phase <= '0;
+      fetch_state <= 1'b1;
+      exc_pending <= 1'b1;
+      exc_vector <= next_exc_vector;
+      exc_fault_pc <= instr_pc;
+      exc_entry <= 1'b0;
     end else if (!core_stopped) begin
-       if (fetch_state) begin
-         instr_reg <= fetched_instr;
-         instr_pc <= pc;
-         phase <= '0;
-         fetch_state <= 1'b0;
-       end else if (uword.cut) begin
-         phase <= '0;
-         fetch_state <= 1'b1;
-       end else begin
-         phase <= phase + 1'b1;
-       end
+      if (fetch_state) begin
+        if (startup) begin
+          instr_reg <= VIRTUAL_RESET_INSTR;
+          instr_pc <= '0;
+          startup <= 1'b0;
+          exc_entry <= 1'b0;
+        end else if (exc_pending) begin
+          instr_reg <= VIRTUAL_INT_BASE | {10'd0, exc_vector};
+          instr_pc <= exc_fault_pc;
+          exc_pending <= 1'b0;
+          exc_entry <= 1'b1;
+        end else if (taking_external_irq) begin
+          instr_reg <= VIRTUAL_INT_BASE | {10'd0, irq_vector};
+          instr_pc <= pc;
+          exc_entry <= 1'b1;
+        end else begin
+          instr_reg <= fetched_instr;
+          instr_pc <= pc;
+          exc_entry <= 1'b0;
+        end
+
+        phase <= '0;
+        fetch_state <= 1'b0;
+      end else if (uword.cut) begin
+        phase <= '0;
+        fetch_state <= 1'b1;
+      end else begin
+        phase <= phase + 1'b1;
+      end
     end
   end
 
@@ -296,7 +373,7 @@ module core
   always_ff @(posedge clk) begin
     if (rst) begin
       sp <= '0;
-    end else if (uword.sp_latch) begin
+    end else if (uword.sp_latch && !exc_trig_sp) begin
       sp <= data_bus;
     end else if (uword.sp_inc) begin
       sp <= sp + 16'd2;

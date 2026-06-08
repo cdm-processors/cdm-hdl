@@ -18,6 +18,7 @@ module cpu_bus
     input flag_t       is_int,
     input flag_t       is_branch,
     input flag_t       is_jsr,
+    input flag_t       is_reset,
 
     //Register file data
     input reg_t rs0,
@@ -30,6 +31,7 @@ module cpu_bus
 
     //ALU data
     input data_t alu_result,
+    input flag_t exc_entry,
 
     output data_t alu_bus1,
     output data_t alu_bus2,
@@ -42,6 +44,7 @@ module cpu_bus
       .imm9          (imm9),
       .phase         (phase),
       .is_int        (is_int),
+      .is_reset      (is_reset),
       .imm6_flag     (imm6_flag),
       .imm_extend_neg(ucode.imm_extend_neg),
       .imm_shift     (ucode.imm_shift),
@@ -54,7 +57,13 @@ module cpu_bus
 
   always_comb begin
     pc_push_return_addr = is_jsr && ucode.pc_asrtd;
-    pc_observed_value = pc_push_return_addr ? pc + 16'd4 : pc + 16'd2;
+    if (exc_entry && ucode.pc_asrtd) begin
+      pc_observed_value = pc;
+    end else if (pc_push_return_addr) begin
+      pc_observed_value = pc + 16'd4;
+    end else begin
+      pc_observed_value = pc + 16'd2;
+    end
     sp_observed_value = ucode.sp_dec ? sp - 16'd2 : sp;
 
     if (ucode.fp_asrt0) alu_bus1 = fp;  //register[7]

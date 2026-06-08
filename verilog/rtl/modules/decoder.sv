@@ -30,7 +30,9 @@ module decoder import core_base_pkg::*;
     output flag_t           is_halt,
     output flag_t           is_wait,
     output flag_t           is_ei,
-    output flag_t           is_di
+    output flag_t           is_di,
+
+    output flag_t           is_reset
 
 );
     wire [1:0] postf     = instr[12:11]; // postfix of encoding
@@ -115,6 +117,7 @@ module decoder import core_base_pkg::*;
     assign is_wait = op0_d && (op_type_d0 == 4'd5);
     assign is_ei   = op0_d && (op_type_d0 == 4'd6);
     assign is_di   = op0_d && (op_type_d0 == 4'd7);
+    assign is_reset = imm9_d && (op_type_d3 == 4'd1);
 
 
 //___________________BRANCH_________________________
