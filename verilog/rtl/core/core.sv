@@ -4,7 +4,10 @@ module core
   import core_base_pkg::*;
 (
     input logic clk,
-    input logic rst
+    input logic rst,
+    input flag_t irq,
+    output flag_t int_en,
+    output logic [1:0] status
 );
 
   logic [XLEN-1:0] instr;
@@ -46,6 +49,22 @@ module core
   flag_t is_int;
   flag_t is_branch;
   flag_t is_jsr;
+  flag_t is_halt;
+  flag_t is_wait;
+  flag_t is_ei;
+  flag_t is_di;
+
+  flag_t halted;
+  flag_t waiting;
+  flag_t core_stopped;
+
+  assign core_stopped = halted || waiting;
+
+  always_comb begin
+    if (halted) status = 2'd2;
+    else if (waiting) status = 2'd1;
+    else status = 2'd0;
+  end
 
   logic [3:0] flags;
 
@@ -63,7 +82,7 @@ module core
   flag_t pc_unaligned;
 
   assign pc_hold = 1'b0;
-  assign pc_inc = fetch_state || uword.pc_inc;
+  assign pc_inc = !core_stopped && (fetch_state || uword.pc_inc);
   assign pc_load = uword.pc_latch;
   assign pc_load_data = data_bus;
 
@@ -77,6 +96,11 @@ module core
   assign data_wr = uword.mem && !uword.read;
 
   assign flags = ps[3:0];
+  assign int_en = ps[15];
+
+  flag_t interrupt_pending;
+
+  assign interrupt_pending = irq && int_en;
 
   data_t alu_result;
   logic [3:0] alu_flags;
@@ -106,7 +130,12 @@ module core
     .carry_flag(carry_flag),
     .is_int(is_int),
     .is_branch(is_branch),
-    .is_jsr(is_jsr)
+    .is_jsr(is_jsr),
+
+    .is_halt(is_halt),
+    .is_wait(is_wait),
+    .is_ei(is_ei),
+    .is_di(is_di)
   );
 
   gen_ucode u_gen_ucode (
@@ -114,7 +143,7 @@ module core
     .S(decoded_uword)
   );
 
-  assign uword = fetch_state ? '0 : decoded_uword;
+  assign uword = (fetch_state || core_stopped) ? '0 : decoded_uword;
 
   assign rf_we = uword.r_latch;
 
@@ -218,16 +247,18 @@ module core
       fetch_state <= 1'b1;
       instr_reg <= '0;
       instr_pc <= '0;
-    end else if (fetch_state) begin
-      instr_reg <= fetched_instr;
-      instr_pc <= pc;
-      phase <= '0;
-      fetch_state <= 1'b0;
-    end else if (uword.cut) begin
-      phase <= '0;
-      fetch_state <= 1'b1;
-    end else begin
-      phase <= phase + 1'b1;
+    end else if (!core_stopped) begin
+       if (fetch_state) begin
+         instr_reg <= fetched_instr;
+         instr_pc <= pc;
+         phase <= '0;
+         fetch_state <= 1'b0;
+       end else if (uword.cut) begin
+         phase <= '0;
+         fetch_state <= 1'b1;
+       end else begin
+         phase <= phase + 1'b1;
+       end
     end
   end
 
@@ -236,8 +267,29 @@ module core
       ps <= '0;
     end else if (uword.ps_latch_word) begin
       ps <= data_bus;
+    end else if (!fetch_state && uword.cut && is_ei) begin
+      ps[15] <= 1'b1;
+    end else if (!fetch_state && uword.cut && is_di) begin
+      ps[15] <= 1'b0;
     end else if (uword.ps_latch_flags) begin
       ps[3:0] <= alu_flags;
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      halted <= 1'b0;
+      waiting <= 1'b0;
+    end else begin
+      if (!fetch_state && uword.cut && is_halt) begin
+        halted <= 1'b1;
+      end
+
+      if (irq) begin
+        waiting <= 1'b0;
+      end else if (!fetch_state && uword.cut && is_wait) begin
+        waiting <= 1'b1;
+      end
     end
   end
 

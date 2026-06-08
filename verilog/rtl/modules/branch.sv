@@ -15,6 +15,8 @@ module branch_logic
     
     logic dcsn;
     always_comb begin
+        dcsn = 1'b0;
+
         unique case (cond[3:1])
             0: dcsn = Z;
             1: dcsn = C;
@@ -24,6 +26,7 @@ module branch_logic
             5: dcsn = ~(N ^ V) & 1;
             6: dcsn = (~Z) & ~(N ^ V) & 1;
             7: dcsn = 1;
+            default: dcsn = 1'b0;
         endcase
     end
 
