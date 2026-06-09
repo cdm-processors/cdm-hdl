@@ -72,12 +72,12 @@ module alu import core_base_pkg::*; (
             V  = checkV(R, A, B + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
           ALU3_SUB: begin  // SUB
-            wR = wA + (~wB) + 1;
+            wR = wA + {1'b0, ~B} + 1;
             C  = checkC(wR);
             V  = checkV(R, A, (~B) + 1);  // TODO: maybe there's overflow in second arg
           end
           ALU3_SUBC: begin  // SUBC
-            wR = wA + (~wB) + {16'd0, carry_in};
+            wR = wA + {1'b0, ~B} + {16'd0, carry_in};
             C  = checkC(wR);
             V  = checkV(R, A, (~B) + {15'd0, carry_in});  // TODO: maybe there's overflow in second arg
           end
@@ -86,7 +86,7 @@ module alu import core_base_pkg::*; (
       ALU2: begin
         case (func)
           ALU2_NEG: begin
-            wR = (~wA) + 1;
+            wR = {1'b0, ~A} + 1;
             C  = checkC(wR);
             V  = A == 16'h8000;
           end

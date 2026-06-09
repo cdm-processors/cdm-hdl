@@ -9,37 +9,47 @@ module memory
 (
     input logic clk,
 
+    // instruction port: always reads a full 16-bit word
     input  data_t instr_addr,
     input  flag_t instr_en,
     output data_t instr,
 
+    // data port: byte or word access, optional sign-extend on read
     input  flag_t data_en,
     input  flag_t data_wr,
+    input  flag_t word,         // 1 = word (2 bytes), 0 = byte
+    input  flag_t sign_extend,  // 1 = sign-extend byte on read
     input  data_t data_addr,
     input  data_t data_in,
     output data_t data_out
 );
 
-  data_t ram[0:(1 << MEM_ADDR_WIDTH)-1];
+  // byte-addressable, little-endian (low byte at lower address)
+  // sized for the full 16-bit address space (sim)
+  logic [7:0] mem [0:(1 << XLEN) - 1];
 
   initial begin
     if (INIT_FILE != "") begin
-      $readmemh(INIT_FILE, ram);
+      $readmemh(INIT_FILE, mem);
     end
   end
 
-  logic [MEM_ADDR_WIDTH-1:0] instr_word_addr;
-  logic [MEM_ADDR_WIDTH-1:0] data_word_addr;
+  // instruction read: always a word
+  assign instr = instr_en ? {mem[instr_addr + 16'd1], mem[instr_addr]} : '0;
 
-  assign instr_word_addr = instr_addr[MEM_ADDR_WIDTH:1];
-  assign data_word_addr  = data_addr[MEM_ADDR_WIDTH:1];
+  // data read: word, signed byte or unsigned byte
+  data_t rd_word;
+  data_t rd_byte;
+  assign rd_word = {mem[data_addr + 16'd1], mem[data_addr]};
+  assign rd_byte = sign_extend ? {{8{mem[data_addr][7]}}, mem[data_addr]}
+                               : {8'b0, mem[data_addr]};
+  assign data_out = !data_en ? '0 : (word ? rd_word : rd_byte);
 
-  assign instr    = instr_en ? ram[instr_word_addr] : '0;
-  assign data_out = data_en ? ram[data_word_addr] : '0;
-
+  // data write: byte, or word split into two bytes
   always_ff @(posedge clk) begin
     if (data_en && data_wr) begin
-      ram[data_word_addr] <= data_in;
+      mem[data_addr] <= data_in[7:0];
+      if (word) mem[data_addr + 16'd1] <= data_in[15:8];
     end
   end
 

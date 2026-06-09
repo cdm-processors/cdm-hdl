@@ -282,6 +282,8 @@ module core
 
       .data_en(data_en),
       .data_wr(data_wr),
+      .word(uword.word),
+      .sign_extend(uword.sign_extend),
       .data_addr(alu_result),
       .data_in(data_bus),
       .data_out(mem_data)

@@ -22,7 +22,7 @@ endif
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
 #_____________TESTS______________
-all_tests: alu_tests decoder_tests gen_ucode_tests imm_decoder_tests core_tests
+all_tests: alu_tests decoder_tests gen_ucode_tests imm_decoder_tests core_tests program_tests debug_startup
 	@echo "-----------------ALL_TESTS_COMPLETED-----------------"
 
 alu_tests:
@@ -38,6 +38,22 @@ core_tests:
 	$(MAKE) -C $(TEST_DIR) \
 		SIM_BUILD=$(TEST_DIR)sim_build/core \
 		COCOTB_TEST_MODULES=$(TESTS_DIR).core_tests \
+		TOPLEVEL=core \
+		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
+
+program_tests:
+	@echo "-----------------PROGRAM_TESTS-----------------"
+	$(MAKE) -C $(TEST_DIR) \
+		SIM_BUILD=$(TEST_DIR)sim_build/program \
+		COCOTB_TEST_MODULES=$(TESTS_DIR).program_tests \
+		TOPLEVEL=core \
+		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
+
+debug_startup:
+	@echo "-----------------DEBUG_STARTUP-----------------"
+	$(MAKE) -C $(TEST_DIR) \
+		SIM_BUILD=$(TEST_DIR)sim_build/debug \
+		COCOTB_TEST_MODULES=$(TESTS_DIR).debug_startup \
 		TOPLEVEL=core \
 		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
 
@@ -65,4 +81,4 @@ imm_decoder_tests:
 		TOPLEVEL=imm_decoder \
 		VERILOG_SOURCES=$(MODULES_DIR)/imm_decoder.sv
 
-.PHONY: all_tests alu_tests decoder_tests gen_ucode_tests imm_decoder_tests core_tests
+.PHONY: all_tests alu_tests decoder_tests gen_ucode_tests imm_decoder_tests core_tests program_tests debug_startup
