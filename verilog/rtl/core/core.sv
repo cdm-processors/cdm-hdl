@@ -2,37 +2,354 @@
 
 module core
   import core_base_pkg::*;
+#(
+    parameter MEM_INIT_FILE = ""
+)
 (
     input logic clk,
-    input logic rst
+    input logic rst,
+    input flag_t irq,
+    input logic [5:0] irq_vector,
+    output flag_t int_en,
+    output logic [1:0] status
 );
 
   logic [XLEN-1:0] instr;
-  logic [XLEN-1:0] next_pc;
+
+  flag_t data_en;
+  flag_t data_wr;
 
   ucode_word_t uword;
+
+  u_phase_t phase;
+
+  data_t pc;
+  data_t pc_next;
+  data_t pc_load_data;
+
+  u_addr_t ucode_addr;
+
+  reg_addr_t rsi0;
+  reg_addr_t rsi1;
+  reg_addr_t rdi;
+
+  data_t rs0;
+  data_t rs1;
+  data_t rd_out;
+  data_t fp;
+
+  data_t data_bus;
+  flag_t rf_we;
+
+  logic [2:0] alu_func;
+  logic [2:0] alu_op_type;
+  logic [2:0] shamt;
+
+  logic [5:0] imm6;
+  logic [8:0] imm9;
+
+  flag_t imm6_flag;
+  flag_t carry_flag;
+  flag_t is_int;
+  flag_t is_branch;
+  flag_t is_jsr;
+  flag_t is_halt;
+  flag_t is_wait;
+  flag_t is_ei;
+  flag_t is_di;
+  flag_t is_reset;
+
+  flag_t halted;
+  flag_t waiting;
+  flag_t core_stopped;
+
+  assign core_stopped = halted || waiting;
+
+  always_comb begin
+    if (halted) status = 2'd2;
+    else if (waiting) status = 2'd1;
+    else status = 2'd0;
+  end
+
+  logic [3:0] flags;
+
+  data_t fetched_instr;
+  data_t instr_reg;
+  data_t instr_pc;
+  flag_t fetch_state;
+  ucode_word_t decoded_uword;
+  flag_t exc_pending;
+  flag_t exc_entry;
+  flag_t startup;
+
+  assign instr = instr_reg;
+
+  flag_t pc_hold;
+  flag_t pc_inc;
+  flag_t pc_load;
+  flag_t pc_unaligned;
+  flag_t fetch_uses_memory;
+
+  data_t sp;
+  data_t ps;
+  data_t mem_data;
+  data_t alu_bus1;
+  data_t alu_bus2;
+
+  assign data_en = uword.mem;
+  assign data_wr = uword.mem && !uword.read;
+
+  assign flags = ps[3:0];
+  assign int_en = ps[15];
+
+  flag_t interrupt_pending;
+  flag_t taking_external_irq;
+  flag_t exc_trig_invalid;
+  flag_t exc_trig_pc;
+  flag_t exc_trig_sp;
+  flag_t has_internal_exc;
+  logic [5:0] next_exc_vector;
+
+  assign interrupt_pending = irq && int_en;
+  assign taking_external_irq = fetch_state && !core_stopped
+                            && !startup && !exc_pending
+                            && interrupt_pending;
+  assign exc_trig_invalid = !fetch_state && !core_stopped && (decoded_uword == '0);
+  assign exc_trig_pc = !fetch_state && !core_stopped && uword.pc_latch && data_bus[0];
+  assign exc_trig_sp = !fetch_state && !core_stopped && uword.sp_latch && data_bus[0];
+  assign has_internal_exc = exc_trig_invalid || exc_trig_pc || exc_trig_sp;
+
+  assign pc_hold = 1'b0;
+  assign fetch_uses_memory = fetch_state && !startup
+                          && !exc_pending && !taking_external_irq;
+  assign pc_inc = !core_stopped && (fetch_uses_memory || uword.pc_inc);
+  assign pc_load = uword.pc_latch && !exc_trig_pc;
+  assign pc_load_data = data_bus;
+
+  data_t alu_result;
+  logic [3:0] alu_flags;
+  flag_t alu_carry_in;
+
+  assign alu_carry_in = carry_flag ? flags[3] : 1'b0;
+
+  always_comb begin
+    if (exc_trig_invalid) begin
+      next_exc_vector = 6'd3;
+    end else if (exc_trig_pc) begin
+      next_exc_vector = 6'd2;
+    end else if (exc_trig_sp) begin
+      next_exc_vector = 6'd1;
+    end else begin
+      next_exc_vector = 6'd0;
+    end
+  end
+
+  decoder u_decoder (
+    .instr(instr),
+    .phase(phase),
+    .CVZN(flags),
+
+    .ucode_addr(ucode_addr),
+
+    .rsi0(rsi0),
+    .rsi1(rsi1),
+    .rdi(rdi),
+
+    .alu_func(alu_func),
+    .alu_op_type(alu_op_type),
+    .shamt(shamt),
+
+    .imm6(imm6),
+    .imm9(imm9),
+
+    .imm6_flag(imm6_flag),
+    .carry_flag(carry_flag),
+    .is_int(is_int),
+    .is_branch(is_branch),
+    .is_jsr(is_jsr),
+
+    .is_halt(is_halt),
+    .is_wait(is_wait),
+    .is_ei(is_ei),
+    .is_di(is_di),
+    .is_reset(is_reset)
+  );
+
+  gen_ucode u_gen_ucode (
+    .addr(ucode_addr),
+    .S(decoded_uword)
+  );
+
+  assign uword = (fetch_state || core_stopped) ? '0 : decoded_uword;
+
+  assign rf_we = uword.r_latch;
+
+  reg_file_m u_reg_file (
+      .clk(clk),
+      .rst(rst),
+      .we(rf_we),
+
+      .rsi0(rsi0),
+      .rs0(rs0),
+
+      .rsi1(rsi1),
+      .rs1(rs1),
+
+      .rdi(rdi),
+      .rd_in(data_bus),
+      .rd_out(rd_out),
+
+      .fp(fp)
+  );
+
+  cpu_bus u_cpu_bus (
+      .ucode(uword),
+      .phase(phase),
+
+      .pc(instr_pc),
+      .ps(ps),
+      .sp(sp),
+
+      .imm6(imm6),
+      .imm9(imm9),
+      .imm6_flag(imm6_flag),
+      .is_int(is_int),
+      .is_branch(is_branch),
+      .is_jsr(is_jsr),
+      .is_reset(is_reset),
+
+      .rs0(rs0),
+      .rs1(rs1),
+      .rd_out(rd_out),
+      .fp(fp),
+
+      .mem_data(mem_data),
+
+      .alu_result(alu_result),
+      .exc_entry(exc_entry),
+
+      .alu_bus1(alu_bus1),
+      .alu_bus2(alu_bus2),
+      .data_bus(data_bus)
+  );
+
+  alu u_alu (
+      .A(alu_bus1),
+      .B(alu_bus2),
+      .carry_in(alu_carry_in),
+
+      .op_type(alu_op_type),
+      .func(alu_func),
+      .shamt(shamt),
+
+      .R(alu_result),
+      .CVZN(alu_flags)
+  );
 
   pc_file #(
       .XLEN    (core_base_pkg::XLEN),
       .RESET_PC(core_base_pkg::RESET_PC),
       .STEP    (core_base_pkg::PC_STEP)
   ) u_pc_file (
-      .i_clk(i_clk),
-      .i_rst(i_rst),
+      .i_clk(clk),
+      .i_rst(rst),
 
-      .i_hold     (i_hold),
-      .i_inc      (i_inc),
-      .i_load     (i_load),
-      .i_load_data(i_load_data),
+      .i_hold     (pc_hold),
+      .i_inc      (pc_inc),
+      .i_load     (pc_load),
+      .i_load_data(pc_load_data),
 
-      .o_pc       (o_pc),
-      .o_pc_next  (o_pc_next),
-      .o_unaligned(o_unaligned)
+      .o_pc       (pc),
+      .o_pc_next  (pc_next),
+      .o_unaligned(pc_unaligned)
+  );
+
+  // ================== FETCH / EXCEPTION SEQUENCER ==================
+  core_sequencer u_sequencer (
+      .clk(clk),
+      .rst(rst),
+
+      .core_stopped(core_stopped),
+      .cut(uword.cut),
+      .has_internal_exc(has_internal_exc),
+      .next_exc_vector(next_exc_vector),
+      .taking_external_irq(taking_external_irq),
+      .irq_vector(irq_vector),
+      .pc(pc),
+      .fetched_instr(fetched_instr),
+
+      .phase(phase),
+      .fetch_state(fetch_state),
+      .instr_reg(instr_reg),
+      .instr_pc(instr_pc),
+      .startup(startup),
+      .exc_pending(exc_pending),
+      .exc_entry(exc_entry)
   );
 
   // ===================== MEMORY ======================
   //instance of memory
- 
+  memory #(
+    .INIT_FILE(MEM_INIT_FILE)
+) u_memory (
+      .clk(clk),
+
+      .instr_addr(pc),
+      .instr_en(1'b1),
+      .instr(fetched_instr),
+
+      .data_en(data_en),
+      .data_wr(data_wr),
+      .word(uword.word),
+      .sign_extend(uword.sign_extend),
+      .data_addr(alu_result),
+      .data_in(data_bus),
+      .data_out(mem_data)
+  );
+
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      ps <= '0;
+    end else if (uword.ps_latch_word) begin
+      ps <= data_bus;
+    end else if (!fetch_state && uword.cut && is_ei) begin
+      ps[15] <= 1'b1;
+    end else if (!fetch_state && uword.cut && is_di) begin
+      ps[15] <= 1'b0;
+    end else if (uword.ps_latch_flags) begin
+      ps[3:0] <= alu_flags;
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      halted <= 1'b0;
+      waiting <= 1'b0;
+    end else begin
+      if (!fetch_state && uword.cut && is_halt) begin
+        halted <= 1'b1;
+      end
+
+      if (irq) begin
+        waiting <= 1'b0;
+      end else if (!fetch_state && uword.cut && is_wait) begin
+        waiting <= 1'b1;
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      sp <= '0;
+    end else if (uword.sp_latch && !exc_trig_sp) begin
+      sp <= data_bus;
+    end else if (uword.sp_inc) begin
+      sp <= sp + 16'd2;
+    end else if (uword.sp_dec) begin
+      sp <= sp - 16'd2;
+    end
+  end
 
 
 endmodule  // core

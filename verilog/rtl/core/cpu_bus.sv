@@ -9,6 +9,7 @@ module cpu_bus
     //Registers
     input reg_t pc,
     input reg_t ps,
+    input reg_t sp,
 
     //Decoder data
     input logic  [5:0] imm6,
@@ -16,17 +17,21 @@ module cpu_bus
     input flag_t       imm6_flag,
     input flag_t       is_int,
     input flag_t       is_branch,
-    input flag_t       is_branch,
     input flag_t       is_jsr,
+    input flag_t       is_reset,
 
     //Register file data
+    input reg_t rs0,
     input reg_t rs1,
-    input reg_t rs2,
-    input reg_t rd,
+    input reg_t rd_out,
     input reg_t fp,
 
     //Mem data
-    data_t mem_data,
+    input data_t mem_data,
+
+    //ALU data
+    input data_t alu_result,
+    input flag_t exc_entry,
 
     output data_t alu_bus1,
     output data_t alu_bus2,
@@ -39,34 +44,46 @@ module cpu_bus
       .imm9          (imm9),
       .phase         (phase),
       .is_int        (is_int),
+      .is_reset      (is_reset),
       .imm6_flag     (imm6_flag),
-      .imm_extend_neg(imm_extend_neg),
-      .imm_shift     (imm_shift),
+      .imm_extend_neg(ucode.imm_extend_neg),
+      .imm_shift     (ucode.imm_shift),
       .imm           (imm)
   );
 
-  always_comb begin
-    flag_t dec_pc_asrt_inc = jsr && ucode.pc_asrt0;
-    data_t dec_pc_observed_value = dec_pc_asrt_inc ? dec_pc + 4 : dec_pc + 2;
+  flag_t pc_push_return_addr;
+  data_t pc_observed_value;
+  data_t sp_observed_value;
 
-    data_t dec_sp_observed_value = ucode.sp_asrt0 ? sp - 2 : sp;
+  always_comb begin
+    pc_push_return_addr = is_jsr && ucode.pc_asrtd;
+    if (exc_entry && ucode.pc_asrtd) begin
+      pc_observed_value = pc;
+    end else if (pc_push_return_addr) begin
+      pc_observed_value = pc + 16'd4;
+    end else begin
+      pc_observed_value = pc + 16'd2;
+    end
+    sp_observed_value = ucode.sp_dec ? sp - 16'd2 : sp;
 
     if (ucode.fp_asrt0) alu_bus1 = fp;  //register[7]
-    else if (ucode.pc_asrt0) alu_bus1 = dec_pc_observed_value;
+    else if (ucode.pc_asrt0) alu_bus1 = pc_observed_value;
     else if (ucode.r_asrt0) alu_bus1 = rs0;
-    else if (ucode.sp_asrt0) alu_bus1 = dec_sp_observed_value;
+    else if (ucode.sp_asrt0) alu_bus1 = sp_observed_value;
     else alu_bus1 = 16'b0;
 
     if (ucode.imm_asrt1) alu_bus2 = imm;
     else if (ucode.r_asrt1) alu_bus2 = rs1;
     else alu_bus2 = 16'b0;
 
-    if (ucode.imm_asrtd) data_bus = imm;
-    else if (ucode.pc_asrtd) data_bus = dec_pc_observed_value;
+    if (ucode.r_asrtd) data_bus = rd_out;
+    else if (ucode.imm_asrtd) data_bus = imm;
+    else if (ucode.mem && ucode.read) data_bus = mem_data;
+    else if (ucode.sp_asrtd) data_bus = sp_observed_value;
+    else if (ucode.pc_asrtd) data_bus = pc_observed_value;
+    else if (ucode.alu_asrtd) data_bus = alu_result;
     else if (ucode.ps_asrtd) data_bus = ps;
-    else if (ucode.r_asrtd) data_bus = rd;
-    else if (ucode.sp_asrtd) data_bus = dec_sp_observed_value;
-    else data_bus = 16'b0;
+    else data_bus = '0;
   end
 
 endmodule

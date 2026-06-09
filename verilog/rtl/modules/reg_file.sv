@@ -5,28 +5,39 @@
 module reg_file_m import core_base_pkg::*;
 (
     input logic clk,
+    input logic rst,
     input logic we,
+
+    input reg_addr_t rsi0,
+    output reg_t rs0,
 
     input reg_addr_t rsi1,
     output reg_t rs1,
 
-    input reg_addr_t rsi2,
-    output reg_t rs2,
-
     input reg_addr_t rdi,
-    input reg_t rd
+    input reg_t rd_in,
+    output reg_t rd_out,
+
+    output reg_t fp
 );
 
   reg_t regFile[0:REG_CNT-1];
+  integer i;
 
   always_comb begin
+    rs0 = regFile[rsi0];
     rs1 = regFile[rsi1];
-    rs2 = regFile[rsi2];
+    rd_out = regFile[rdi];
+    fp = regFile[3'd7];
   end
 
   always_ff @(posedge clk) begin : save_rd
-    if (we) begin
-      regFile[rdi] <= rd;
+    if (rst) begin
+      for (i = 0; i < REG_CNT; i = i + 1) begin
+        regFile[i] <= '0;
+      end
+    end else if (we) begin
+      regFile[rdi] <= rd_in;
     end
   end
 

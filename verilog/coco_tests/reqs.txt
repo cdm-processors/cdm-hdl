@@ -1,3 +1,5 @@
 asyncio==4.0.0
 cocotb==2.0.1
 find-libpython==0.5.1
+pyyaml          # parse expected-output .yaml in program_tests
+cdm-devkit      # provides the `cocas` assembler (cocas --target cdm16) used by program_tests
