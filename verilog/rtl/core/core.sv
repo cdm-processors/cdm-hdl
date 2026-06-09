@@ -81,8 +81,6 @@ module core
   flag_t exc_pending;
   flag_t exc_entry;
   flag_t startup;
-  logic [5:0] exc_vector;
-  data_t exc_fault_pc;
 
   assign instr = instr_reg;
 
@@ -133,9 +131,6 @@ module core
   flag_t alu_carry_in;
 
   assign alu_carry_in = carry_flag ? flags[3] : 1'b0;
-
-  localparam data_t VIRTUAL_RESET_INSTR = 16'h8200;
-  localparam data_t VIRTUAL_INT_BASE = 16'h8000;
 
   always_comb begin
     if (exc_trig_invalid) begin
@@ -269,6 +264,29 @@ module core
       .o_unaligned(pc_unaligned)
   );
 
+  // ================== FETCH / EXCEPTION SEQUENCER ==================
+  core_sequencer u_sequencer (
+      .clk(clk),
+      .rst(rst),
+
+      .core_stopped(core_stopped),
+      .cut(uword.cut),
+      .has_internal_exc(has_internal_exc),
+      .next_exc_vector(next_exc_vector),
+      .taking_external_irq(taking_external_irq),
+      .irq_vector(irq_vector),
+      .pc(pc),
+      .fetched_instr(fetched_instr),
+
+      .phase(phase),
+      .fetch_state(fetch_state),
+      .instr_reg(instr_reg),
+      .instr_pc(instr_pc),
+      .startup(startup),
+      .exc_pending(exc_pending),
+      .exc_entry(exc_entry)
+  );
+
   // ===================== MEMORY ======================
   //instance of memory
   memory #(
@@ -289,57 +307,6 @@ module core
       .data_out(mem_data)
   );
 
-  
-  always_ff @(posedge clk) begin
-    if (rst) begin
-      phase <= '0;
-      fetch_state <= 1'b1;
-      instr_reg <= '0;
-      instr_pc <= '0;
-      startup <= 1'b1;
-      exc_pending <= 1'b0;
-      exc_entry <= 1'b0;
-      exc_vector <= '0;
-      exc_fault_pc <= '0;
-    end else if (has_internal_exc) begin
-      phase <= '0;
-      fetch_state <= 1'b1;
-      exc_pending <= 1'b1;
-      exc_vector <= next_exc_vector;
-      exc_fault_pc <= instr_pc;
-      exc_entry <= 1'b0;
-    end else if (!core_stopped) begin
-      if (fetch_state) begin
-        if (startup) begin
-          instr_reg <= VIRTUAL_RESET_INSTR;
-          instr_pc <= '0;
-          startup <= 1'b0;
-          exc_entry <= 1'b0;
-        end else if (exc_pending) begin
-          instr_reg <= VIRTUAL_INT_BASE | {10'd0, exc_vector};
-          instr_pc <= exc_fault_pc;
-          exc_pending <= 1'b0;
-          exc_entry <= 1'b1;
-        end else if (taking_external_irq) begin
-          instr_reg <= VIRTUAL_INT_BASE | {10'd0, irq_vector};
-          instr_pc <= pc;
-          exc_entry <= 1'b1;
-        end else begin
-          instr_reg <= fetched_instr;
-          instr_pc <= pc;
-          exc_entry <= 1'b0;
-        end
-
-        phase <= '0;
-        fetch_state <= 1'b0;
-      end else if (uword.cut) begin
-        phase <= '0;
-        fetch_state <= 1'b1;
-      end else begin
-        phase <= phase + 1'b1;
-      end
-    end
-  end
 
   always_ff @(posedge clk) begin
     if (rst) begin

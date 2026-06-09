@@ -39,7 +39,7 @@ core_tests:
 		SIM_BUILD=$(TEST_DIR)sim_build/core \
 		COCOTB_TEST_MODULES=$(TESTS_DIR).core_tests \
 		TOPLEVEL=core \
-		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
+		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/core_sequencer.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
 
 program_tests:
 	@echo "-----------------PROGRAM_TESTS-----------------"
@@ -47,7 +47,7 @@ program_tests:
 		SIM_BUILD=$(TEST_DIR)sim_build/program \
 		COCOTB_TEST_MODULES=$(TESTS_DIR).program_tests \
 		TOPLEVEL=core \
-		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
+		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/core_sequencer.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
 
 debug_startup:
 	@echo "-----------------DEBUG_STARTUP-----------------"
@@ -55,7 +55,7 @@ debug_startup:
 		SIM_BUILD=$(TEST_DIR)sim_build/debug \
 		COCOTB_TEST_MODULES=$(TESTS_DIR).debug_startup \
 		TOPLEVEL=core \
-		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
+		VERILOG_SOURCES="$(CORE_DIR)/core.sv $(CORE_DIR)/core_sequencer.sv $(CORE_DIR)/cpu_bus.sv $(CORE_DIR)/memory.sv $(MODULES_DIR)/pc_file.sv $(MODULES_DIR)/reg_file.sv $(MODULES_DIR)/imm_decoder.sv $(MODULES_DIR)/alu.sv $(MODULES_DIR)/decoder.sv $(MODULES_DIR)/branch.sv $(MODULES_DIR)/gen_ucode.sv"
 
 decoder_tests:
 	@echo "-----------------DECODER_TESTS-----------------"
