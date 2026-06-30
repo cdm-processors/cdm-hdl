@@ -13,7 +13,10 @@ async def boot_and_run(dut, program: dict):
     dut.irq_vector.value = 0
 
     for addr, byte in program.items():
-        dut.u_memory.mem[addr].value = byte
+        if addr & 1:
+            dut.u_memory.bank1[addr >> 1].value = byte
+        else:
+            dut.u_memory.bank0[addr >> 1].value = byte
 
     dut.rst.value = 1
     await RisingEdge(dut.clk)

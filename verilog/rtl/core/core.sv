@@ -89,6 +89,9 @@ module core
   flag_t pc_load;
   flag_t pc_unaligned;
   flag_t fetch_uses_memory;
+  flag_t needs_read;
+  flag_t stall;
+  flag_t mem_wait;
 
   data_t sp;
   data_t ps;
@@ -114,16 +117,26 @@ module core
   assign taking_external_irq = fetch_state && !core_stopped
                             && !startup && !exc_pending
                             && interrupt_pending;
-  assign exc_trig_invalid = !fetch_state && !core_stopped && (decoded_uword == '0);
-  assign exc_trig_pc = !fetch_state && !core_stopped && uword.pc_latch && data_bus[0];
-  assign exc_trig_sp = !fetch_state && !core_stopped && uword.sp_latch && data_bus[0];
+  assign exc_trig_invalid = !fetch_state && !core_stopped && !stall && (decoded_uword == '0);
+  assign exc_trig_pc = !fetch_state && !core_stopped && !stall && uword.pc_latch && data_bus[0];
+  assign exc_trig_sp = !fetch_state && !core_stopped && !stall && uword.sp_latch && data_bus[0];
   assign has_internal_exc = exc_trig_invalid || exc_trig_pc || exc_trig_sp;
 
   assign pc_hold = 1'b0;
   assign fetch_uses_memory = fetch_state && !startup
                           && !exc_pending && !taking_external_irq;
-  assign pc_inc = !core_stopped && (fetch_uses_memory || uword.pc_inc);
-  assign pc_load = uword.pc_latch && !exc_trig_pc;
+
+  // BRAM read has +1 cycle latency: stall one cycle on a real fetch / data read,
+  // so the registered read result is valid before we use it.
+  assign needs_read = !core_stopped && (fetch_uses_memory || (uword.mem && uword.read));
+  assign stall      = needs_read && !mem_wait;
+  always_ff @(posedge clk) begin
+    if (rst) mem_wait <= 1'b0;
+    else     mem_wait <= stall;
+  end
+
+  assign pc_inc = !core_stopped && !stall && (fetch_uses_memory || uword.pc_inc);
+  assign pc_load = uword.pc_latch && !exc_trig_pc && !stall;
   assign pc_load_data = data_bus;
 
   data_t alu_result;
@@ -182,7 +195,7 @@ module core
 
   assign uword = (fetch_state || core_stopped) ? '0 : decoded_uword;
 
-  assign rf_we = uword.r_latch;
+  assign rf_we = uword.r_latch && !stall;
 
   reg_file_m u_reg_file (
       .clk(clk),
@@ -270,6 +283,7 @@ module core
       .rst(rst),
 
       .core_stopped(core_stopped),
+      .stall(stall),
       .cut(uword.cut),
       .has_internal_exc(has_internal_exc),
       .next_exc_vector(next_exc_vector),
@@ -311,14 +325,16 @@ module core
   always_ff @(posedge clk) begin
     if (rst) begin
       ps <= '0;
-    end else if (uword.ps_latch_word) begin
-      ps <= data_bus;
-    end else if (!fetch_state && uword.cut && is_ei) begin
-      ps[15] <= 1'b1;
-    end else if (!fetch_state && uword.cut && is_di) begin
-      ps[15] <= 1'b0;
-    end else if (uword.ps_latch_flags) begin
-      ps[3:0] <= alu_flags;
+    end else if (!stall) begin
+      if (uword.ps_latch_word) begin
+        ps <= data_bus;
+      end else if (!fetch_state && uword.cut && is_ei) begin
+        ps[15] <= 1'b1;
+      end else if (!fetch_state && uword.cut && is_di) begin
+        ps[15] <= 1'b0;
+      end else if (uword.ps_latch_flags) begin
+        ps[3:0] <= alu_flags;
+      end
     end
   end
 
@@ -326,7 +342,7 @@ module core
     if (rst) begin
       halted <= 1'b0;
       waiting <= 1'b0;
-    end else begin
+    end else if (!stall) begin
       if (!fetch_state && uword.cut && is_halt) begin
         halted <= 1'b1;
       end
@@ -342,12 +358,14 @@ module core
   always_ff @(posedge clk) begin
     if (rst) begin
       sp <= '0;
-    end else if (uword.sp_latch && !exc_trig_sp) begin
-      sp <= data_bus;
-    end else if (uword.sp_inc) begin
-      sp <= sp + 16'd2;
-    end else if (uword.sp_dec) begin
-      sp <= sp - 16'd2;
+    end else if (!stall) begin
+      if (uword.sp_latch && !exc_trig_sp) begin
+        sp <= data_bus;
+      end else if (uword.sp_inc) begin
+        sp <= sp + 16'd2;
+      end else if (uword.sp_dec) begin
+        sp <= sp - 16'd2;
+      end
     end
   end
 
