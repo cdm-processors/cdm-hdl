@@ -7,6 +7,7 @@ module core_sequencer
     input  logic       rst,
 
     input  flag_t      core_stopped,         // halted/waiting/fault -> freeze
+    input  flag_t      stall,                // BRAM read in flight -> hold this cycle
     input  flag_t      cut,                  // last microstep of the instruction
     input  flag_t      has_internal_exc,     // internal exception fired this cycle
     input  logic [5:0] next_exc_vector,      // vector for that exception
@@ -48,7 +49,7 @@ module core_sequencer
       exc_vector <= next_exc_vector;
       exc_fault_pc <= instr_pc;
       exc_entry <= 1'b0;
-    end else if (!core_stopped) begin
+    end else if (!core_stopped && !stall) begin
       if (fetch_state) begin
         if (startup) begin
           instr_reg <= VIRTUAL_RESET_INSTR;

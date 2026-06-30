@@ -20,7 +20,10 @@ async def debug_startup(dut):
         6: 0x04, 7: 0x00,   # main: halt (0x0004)
     }
     for addr, byte in program.items():
-        dut.u_memory.mem[addr].value = byte
+        if addr & 1:
+            dut.u_memory.bank1[addr >> 1].value = byte
+        else:
+            dut.u_memory.bank0[addr >> 1].value = byte
 
     dut.rst.value = 1
     await RisingEdge(dut.clk)

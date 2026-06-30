@@ -64,9 +64,12 @@ async def run_program(dut, case):
 
     cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
 
-    # load program (data comes from the testbench, not from RTL init)
-    for i, b in enumerate(bs):
-        dut.u_memory.mem[i].value = b
+    # load program into the two byte banks (bank0 = even bytes, bank1 = odd)
+    for w in range((len(bs) + 1) // 2):
+        lo = bs[2 * w]
+        hi = bs[2 * w + 1] if (2 * w + 1) < len(bs) else 0
+        dut.u_memory.bank0[w].value = lo
+        dut.u_memory.bank1[w].value = hi
 
     dut.irq.value = 0
     dut.irq_vector.value = 0
@@ -91,12 +94,16 @@ async def run_program(dut, case):
         cocotb.log.info(f"{name} = {actual:#06x}, expected {ref:#06x}")
         assert actual == ref, f"{asm_path.name}: {name} = {actual:#x}, expected {ref:#x}"
 
-    # check memory (byte addresses, little-endian)
+    # check memory (yaml uses byte addresses; memory is two byte banks)
+    def byte_at(a):
+        idx = a >> 1
+        if a & 1:
+            return int(dut.u_memory.bank1[idx].value) & 0xFF
+        return int(dut.u_memory.bank0[idx].value) & 0xFF
+
     for address, ref in expected.get("memory", {}).items():
         ref_len = (ref.bit_length() + 7) // 8
-        low = int(dut.u_memory.mem[address].value)
-        high = int(dut.u_memory.mem[address + 1].value)
-        actual = (high << 8) + low
+        actual = (byte_at(address + 1) << 8) | byte_at(address)
         if ref_len == 1:
             actual &= 0xFF
         cocotb.log.info(f"mem[{address:#06x}] = {actual:#06x}, expected {ref:#06x}")
